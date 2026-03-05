@@ -1,0 +1,41 @@
+{
+  "model_file": "xgboost_atraso_v4.pkl",
+  "threshold": 0.29000000000000004,
+  "features": [
+    "velocidade_lojista_dias",
+    "distancia_haversine_km",
+    "freight_value",
+    "rota_interestadual",
+    "customer_state_encoded",
+    "seller_state_encoded",
+    "volume_cm3",
+    "product_weight_g",
+    "price",
+    "total_itens_pedido",
+    "dia_semana_compra",
+    "prazo_estimado_dias",
+    "historico_atraso_vendedor",
+    "qtd_pedidos_anteriores_vendedor",
+    "historico_atraso_rota",
+    "frete_por_kg"
+  ],
+  "n_features": 16,
+  "best_params": {
+    "learning_rate": 0.1,
+    "max_depth": 10,
+    "min_child_weight": 1,
+    "n_estimators": 500,
+    "scale_pos_weight": 3
+  },
+  "smote": {
+    "strategy": 0.3,
+    "synthetic_samples": 18891
+  },
+  "metrics": {
+    "roc_auc": 0.8374744504389083,
+    "recall": 0.4576737783895389,
+    "precision": 0.4592541436464088,
+    "f1_score": 0.4584625991037573
+  },
+  "version": "v4"
+}
