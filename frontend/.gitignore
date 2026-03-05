@@ -1,0 +1,33 @@
+# Frontend .gitignore
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node
+node_modules/
+package-lock.json
+yarn.lock
+
+# Python
+__pycache__/
+*.pyc
+.env
+.venv
+venv/
+
+# Cache
+.cache/
+dist/
+build/
+
+# Logs
+*.log
+npm-debug.log*
