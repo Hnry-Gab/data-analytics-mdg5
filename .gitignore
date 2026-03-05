@@ -18,6 +18,7 @@ __pycache__/
 # Full ralph, individual workflow
 .ralph/
 .ralphrc
+.ralph/script/
 
 # Ralph generated files (inside .ralph/ subfolder)
 .ralph/.call_count
