@@ -17,7 +17,7 @@
 ### 🦅 Esquadrão Delta (Painel Visual/App)
 **Membros:** Pablo e Douglas.
 *   **O que farão hoje:**
-    *   **Manhã da Infraestrutura (Nuvem):** Subir todos os arquivos finais para um Repositório do Github (A base `.csv` reduzida, o arquivo do front `.py`, o arquivo `.pkl` e o `requirements.txt`). Logar na **Streamlit Community Cloud**, conectar ao repositório e solicitar o Build Gratuito. Douglas caça bugs massivamente pelo link.
+    *   **Manhã da Infraestrutura (Nuvem):** Subir todos os arquivos finais para um Repositório do Github (A base `.csv` reduzida, o arquivo do front `.py`, o arquivo `.pkl` e o `requirements.txt`). Logar na **Render/Railway**, conectar ao repositório e solicitar o Build Gratuito. Douglas caça bugs massivamente pelo link.
     *   **Tarde/Noite:** Juntam-se ao resto da equipe para o Ensaio Geral.
 *   **Entregável do Dia:** Um link URL definitivo rodando o negócio perfeitamente na internet e participação impecável no ensaio.
 

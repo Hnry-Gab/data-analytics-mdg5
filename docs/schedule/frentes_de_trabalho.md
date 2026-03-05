@@ -16,7 +16,7 @@ Para garantir uma entrega do mais alto nível técnico e estratégico (focado em
 **O que é:** A interface humana de alto nível para observadores e diretores não-técnicos do projeto.
 **Objetivo da Entrega:** Tangibilizar milhões de linhas de dados logísticos (CSV) em visuais dinâmicos. Mostrar de forma interativa o acompanhamento das métricas de atraso e gargalos de entrega.
 **Exemplos de Entregas:**
-*   Construção de um App ou Painel utilizando exclusivamente Streamlit (Python).
+*   Construção de um App ou Painel utilizando exclusivamente Frontend/FastAPI (Python).
 *   Mapas de calor logístico das rotas do Brasil.
 *   Visão global da saúde da operação Olist de acordo com os filtros de Tempo e Vendedor selecionados na tela.
 *   Essa frente trabalhará em conjunto com a Frente 3 para criar um dashboard que mostre as métricas vitais de atraso logístico aos envolvidos.

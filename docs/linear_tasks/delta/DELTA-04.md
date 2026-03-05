@@ -1,15 +1,15 @@
-# [DELTA-04] Gráficos Interativos Plotly (Aba 1)
+# [DELTA-04] Gráficos Interativos ECharts/Chart.js (Aba 1)
 
 **Responsável:** Pablo, Douglas
 **Dia:** 2 (Sexta-feira)
 **Prioridade:** 🟡 Alta
-**Branch:** `feat/delta-04-graficos-plotly`
+**Branch:** `feat/delta-04-graficos-ECharts/Chart.js`
 
 ---
 
 ## Descrição
 
-Construir os gráficos interativos gerenciais da Olist usando Plotly na Aba 1 do Streamlit.
+Construir os gráficos interativos gerenciais da Olist usando ECharts/Chart.js na Aba 1 do Frontend/FastAPI.
 
 ### Gráficos a Implementar
 
@@ -34,11 +34,11 @@ Construir os gráficos interativos gerenciais da Olist usando Plotly na Aba 1 do
 
 - [ ] No mínimo 4 gráficos interativos funcionais
 - [ ] Filtros da sidebar alteram os gráficos dinamicamente
-- [ ] Hover mostrando detalhes nos gráficos Plotly
+- [ ] Hover mostrando detalhes nos Gráficos (Chart.js/ECharts)
 - [ ] Layout responsivo (`layout="wide"`)
 
 ## Dependências
 - DELTA-03 (dados reais carregados)
 
 ## Entregável
-Aba 1 completa com gráficos Plotly interativos
+Aba 1 completa com Gráficos (Chart.js/ECharts) interativos

@@ -1,0 +1,26 @@
+{
+  "model_file": "xgboost_atraso_v2.pkl",
+  "threshold": 0.29000000000000004,
+  "features": [
+    "velocidade_lojista_dias",
+    "distancia_haversine_km",
+    "freight_value",
+    "rota_interestadual",
+    "customer_state_encoded",
+    "seller_state_encoded"
+  ],
+  "best_params": {
+    "learning_rate": 0.05,
+    "max_depth": 8,
+    "min_child_weight": 1,
+    "n_estimators": 200,
+    "scale_pos_weight": 3
+  },
+  "metrics": {
+    "roc_auc": 0.7591383886428639,
+    "recall": 0.40812112869924294,
+    "precision": 0.22243060765191297,
+    "f1_score": 0.28793396455450354
+  },
+  "version": "v2"
+}

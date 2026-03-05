@@ -18,9 +18,9 @@
 ### 🦅 Esquadrão Delta (Painel Visual/App)
 **Membros:** Pablo e Douglas.
 *   **O que farão hoje:**
-    *   **Pablo:** Inicia o projeto Streamlit. Cria o arquivo `app.py`, configura o servidor local e desenha o esqueleto completo das 3 telas/abas do aplicativo (Dashboard Histórico, Insights, Simulador de Predição).
-    *   **Douglas:** Como o CSV real ainda está sendo mastigado pelo Alpha, ele ajuda o Pablo gerando "dados falsos" (mockados) para as telas já terem algum gráfico de teste rodando. Estuda a arquitetura de como o Streamlit receberá o modelo preditivo no futuro.
-*   **Entregável do Fim do Dia:** A interface do Streamlit rodando localmente no navegador, sem erros de código, aguardando apenas serem "plugadas" aos dados reais.
+    *   **Pablo:** Inicia o projeto Full-Stack. Cria o arquivo `app.py`, configura o servidor local e desenha o esqueleto completo das 3 telas/abas do aplicativo (Dashboard Histórico, Insights, Simulador de Predição).
+    *   **Douglas:** Como o CSV real ainda está sendo mastigado pelo Alpha, ele ajuda o Pablo gerando "dados falsos" (mockados) para as telas já terem algum gráfico de teste rodando. Estuda a arquitetura de como o Frontend/FastAPI receberá o modelo preditivo no futuro.
+*   **Entregável do Fim do Dia:** A interface do Frontend/FastAPI rodando localmente no navegador, sem erros de código, aguardando apenas serem "plugadas" aos dados reais.
 
 ---
 

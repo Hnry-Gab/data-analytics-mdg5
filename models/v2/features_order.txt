@@ -1,0 +1,6 @@
+velocidade_lojista_dias
+distancia_haversine_km
+freight_value
+rota_interestadual
+customer_state_encoded
+seller_state_encoded
