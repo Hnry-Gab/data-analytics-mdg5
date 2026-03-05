@@ -9,7 +9,7 @@
 
 ## Descrição
 
-Serializar (salvar) o modelo XGBoost otimizado como um arquivo `.pkl` que o Esquadrão Delta carregará no Frontend/FastAPI para o Simulador de Predição (Aba 3).
+Serializar (salvar) o modelo XGBoost otimizado como um arquivo `.pkl` que o Esquadrão Delta carregará no Streamlit para o Simulador de Predição (Aba 3).
 
 ### Passo a Passo
 
@@ -26,7 +26,7 @@ print(test_pred)  # Deve retornar probabilidades
 ```
 
 ### Importante
-- Salvar também a lista de features na ordem exata usada no treino (o Frontend/FastAPI precisa enviar os dados na mesma ordem).
+- Salvar também a lista de features na ordem exata usada no treino (o Streamlit precisa enviar os dados na mesma ordem).
 - Salvar o encoder (se `LabelEncoder` ou `OneHotEncoder` foi usado) junto com o modelo.
 
 ## Critério de Aceite
