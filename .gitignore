@@ -1,3 +1,20 @@
+# Gitignore Olist
+
+# Ignorar o peso da pasta dataset original, mantendo o readme dela visível na nuvem
+dataset/*.csv
+
+# Ignorar ambientes virtuais Python se forem criados futuramente
+venv/
+env/
+.venv/
+.env/
+
+# Ignorar caches e arquivos compilados de Machine Learning
+__pycache__/
+*.pkl
+*.joblib
+*.ipynb_checkpoints/
+
 # Full ralph, individual workflow
 .ralph/
 .ralphrc
@@ -35,7 +52,6 @@ Thumbs.db
 node_modules/
 
 # Python cache (if using Python projects)
-__pycache__/
 *.pyc
 
 # Rust build (if using Rust projects)
@@ -55,10 +71,3 @@ data/raw/*.csv
 
 # Processed data cache
 data/processed/
-
-# Jupyter checkpoints
-.ipynb_checkpoints/
-
-# Python virtual environment
-venv/
-.venv/
