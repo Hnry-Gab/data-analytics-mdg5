@@ -11,7 +11,7 @@
 | Ordem | Card | Responsável | Branch | Depende de |
 |:--|:--|:--|:--|:--|
 | 🟢 | **ALPHA-01** Merge das tabelas | Henry, Lucas | `feat/alpha-01-merge-tabelas` | — |
-| 🟢 | **DELTA-01** Setup Streamlit + 3 abas | Pablo | `feat/delta-01-streamlit-setup` | — |
+| 🟢 | **DELTA-01** Setup Frontend/FastAPI + 3 abas | Pablo | `feat/delta-01-Frontend/FastAPI-setup` | — |
 | 🟢 | **OMEGA-02** Índice da apresentação | Anderson, Gabriel | `docs/omega-02-indice-apresentacao` | — |
 
 ### Bloco 2 (Tarde) — Após ALPHA-01
@@ -31,7 +31,7 @@
 
 ### Entregáveis do Dia 1
 - [ ] CSV unificado com variável alvo (`foi_atraso`)
-- [ ] Streamlit rodando localmente com mockups
+- [ ] Frontend/FastAPI rodando localmente com mockups
 - [ ] Primeiras correlações e índice de slides definido
 
 ---
@@ -63,7 +63,7 @@
 ### Entregáveis do Dia 2
 - [ ] Features criadas e selecionadas
 - [ ] Primeiro modelo baseline treinado
-- [ ] Aba 1 do Streamlit com gráficos reais
+- [ ] Aba 1 do Frontend/FastAPI com gráficos reais
 - [ ] Narrativa de negócio redigida
 
 ---
@@ -99,7 +99,7 @@
 
 | Ordem | Card | Responsável | Branch | Depende de |
 |:--|:--|:--|:--|:--|
-| ⏩ | **DELTA-07** Deploy Streamlit Cloud | Pablo | `feat/delta-07-deploy` | DELTA-06 |
+| ⏩ | **DELTA-07** Deploy Render/Vercel | Pablo | `feat/delta-07-deploy` | DELTA-06 |
 
 ### Bloco 10 (Tarde)
 
@@ -135,7 +135,7 @@
 
 | Branch | Card | Dia |
 |:--|:--|:--|
-| `feat/delta-01-streamlit-setup` | DELTA-01 | 1 |
+| `feat/delta-01-Frontend/FastAPI-setup` | DELTA-01 | 1 |
 | `feat/delta-02-dados-mockados` | DELTA-02 | 1 |
 | `feat/delta-03-csv-real` | DELTA-03 | 2 |
 | `feat/delta-04-graficos-plotly` | DELTA-04 | 2 |

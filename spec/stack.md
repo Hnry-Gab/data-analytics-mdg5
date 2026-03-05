@@ -19,15 +19,21 @@
 ## Visualização
 - `plotly` — Gráficos interativos (barras, dispersão, mapas choropleth) compatíveis com Streamlit
 
-## Aplicação Web
-- `streamlit` — Interface web unificada (Dashboard + Insights + Simulador de Predição)
+## Aplicação Web (Frontend)
+- **HTML5 / CSS3 Vanilla** — Sem frameworks pesados (Tailwind só se necessário), foco em Web Design moderno (Glassmorphism, Dark mode).
+- **Vanilla JavaScript** — Lógica de interface, Fetch API para conectar com o backend.
 
-## Ambiente de Desenvolvimento
-- `jupyter` — Notebooks para EDA e experimentação do modelo (Esquadrão Alpha)
+## Backend (API Olist)
+- `fastapi` — Criação da API REST assíncrona super-rápida.
+- `uvicorn` — Servidor ASGI para rodar o FastAPI.
+- `pydantic` — Validação estrita de dados de entrada do frontend.
+
+## Integração Inteligente (IA)
+- **MCP Server (Model Context Protocol)** — Servidor Python para conectar a inteligência do motor de previsão a agentes LLM externos.
 
 ## Deploy
-- **Streamlit Community Cloud** (free tier)
-- Vinculado diretamente ao repositório GitHub (deploy automático via push na main)
+- **Backend/API:** Render ou Railway (suporte nativo a containers FastAPI/Python).
+- **Frontend:** Vercel ou GitHub Pages (hospedagem de estáticos HTML/JS).
 
 ---
 
@@ -39,4 +45,4 @@
 | `causalml` | Uplift Modeling fora do escopo |
 | `nltk` / `spacy` | NLP fora do escopo |
 | `pytest` / `playwright` | Testes automatizados fora do escopo de 4 dias |
-| `seaborn` | Padronizamos no `plotly` para integração nativa com Streamlit |
+| `streamlit` | Trocado por HTML/JS + FastAPI para maior escalabilidade gráfica e de API |

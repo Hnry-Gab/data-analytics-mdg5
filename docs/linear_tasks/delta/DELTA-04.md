@@ -9,7 +9,7 @@
 
 ## Descrição
 
-Construir os gráficos interativos gerenciais da Olist usando Plotly na Aba 1 do Streamlit.
+Construir os gráficos interativos gerenciais da Olist usando Plotly na Aba 1 do Frontend/FastAPI.
 
 ### Gráficos a Implementar
 

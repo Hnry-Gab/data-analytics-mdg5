@@ -1,15 +1,15 @@
-# [DELTA-01] Setup do Streamlit e Esqueleto de 3 Abas
+# [DELTA-01] Setup do Frontend/FastAPI e Esqueleto de 3 Abas
 
 **Responsável:** Pablo
 **Dia:** 1 (Quinta-feira)
 **Prioridade:** 🔴 Crítica
-**Branch:** `feat/delta-01-streamlit-setup`
+**Branch:** `feat/delta-01-Frontend/FastAPI-setup`
 
 ---
 
 ## Descrição
 
-Criar o projeto Streamlit do zero, configurar o servidor local e montar o esqueleto visual completo das 3 abas que compõem o produto final.
+Criar o projeto Full-Stack do zero, configurar o servidor local e montar o esqueleto visual completo das 3 abas que compõem o produto final.
 
 ### Passo a Passo
 
@@ -21,7 +21,7 @@ Criar o projeto Streamlit do zero, configurar o servidor local e montar o esquel
    - `src/pages/insights.py` → Aba 2 (Insights de Negócio)
    - `src/pages/simulador.py` → Aba 3 (Motor de Predição)
 5. Cada aba deve ter um título, um subtítulo explicativo e placeholders (`st.empty()`) para os gráficos futuros.
-6. Testar `streamlit run src/app.py` localmente no navegador.
+6. Testar `uvicorn src.main:app --reload` localmente no navegador.
 
 ### Referências
 - `spec/project_spec.md` → Descrição das 3 abas
@@ -29,7 +29,7 @@ Criar o projeto Streamlit do zero, configurar o servidor local e montar o esquel
 
 ## Critério de Aceite
 
-- [ ] `streamlit run src/app.py` roda sem erros
+- [ ] `uvicorn src.main:app --reload` roda sem erros
 - [ ] 3 abas navegáveis no browser
 - [ ] Sidebar com filtros placeholder (data, estado)
 - [ ] Título e logo da aplicação visíveis
@@ -38,4 +38,4 @@ Criar o projeto Streamlit do zero, configurar o servidor local e montar o esquel
 Nenhuma — pode começar em paralelo ao Alpha.
 
 ## Entregável
-App Streamlit rodando localmente com o esqueleto visual completo
+Web App rodando localmente com o esqueleto visual completo
