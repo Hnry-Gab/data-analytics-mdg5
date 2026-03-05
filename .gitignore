@@ -75,3 +75,16 @@ data/processed/
 
 # Ignorar dataset estendido de 41 colunas (muito pesado)
 **/dataset_unificado_v1.csv
+
+# Backend logs
+logs/
+*.log
+
+# Environment variables
+.env
+
+# Models and data (too large for git)
+models/*.pkl
+models/*.joblib
+data/*.csv
+!data/.gitkeep
