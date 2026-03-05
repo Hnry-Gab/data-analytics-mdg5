@@ -18,10 +18,10 @@ Este documento define os critérios mínimos aceitáveis para considerar o proje
 
 | Critério | Meta |
 |:--|:--|
-| Web App rodando sem erros | Obrigatório |
+| App Streamlit rodando sem erros | Obrigatório |
 | 3 abas funcionais (Painel, Insights, Simulador) | Obrigatório |
-| Gráficos interativos (ECharts/Chart.js) carregando | Obrigatório |
-| Deploy no Render/Railway | Desejável |
+| Gráficos interativos (Plotly) carregando | Obrigatório |
+| Deploy no Streamlit Community Cloud | Desejável |
 
 ## Critérios de Sucesso da Apresentação
 
@@ -38,8 +38,8 @@ Este documento define os critérios mínimos aceitáveis para considerar o proje
 | Cenário de Risco | Ação Corretiva |
 |:--|:--|
 | ROC-AUC do XGBoost < 0.65 | Trocar para Random Forest ou reduzir features |
-| Modelo muito lento no Frontend/FastAPI | Reduzir `n_estimators` para 100 e usar `joblib` com compressão |
-| Deploy no Render/Vercel falhar | Usar Render (free tier) como alternativa |
+| Modelo muito lento no Streamlit | Reduzir `n_estimators` para 100 e usar `joblib` com compressão |
+| Deploy no Streamlit Cloud falhar | Usar Render (free tier) como alternativa |
 | Henry não conseguir finalizar a EDA no Dia 1 | Mauricio assume a EDA e o treino do modelo é adiado para Dia 2 à tarde |
-| Bug crítico no Web App no Dia 4 | Priorizar as abas 1 e 3 (Painel e Simulador), sacrificar aba 2 (Insights) |
+| Bug crítico no App Streamlit no Dia 4 | Priorizar as abas 1 e 3 (Painel e Simulador), sacrificar aba 2 (Insights) |
 | Dados faltantes no merge das tabelas | Usar `fillna()` com medianas para features numéricas e "desconhecido" para categóricas |

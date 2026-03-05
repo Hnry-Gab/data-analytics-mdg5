@@ -9,7 +9,7 @@
 
 ## Descrição
 
-Montar a Aba 2 do Frontend/FastAPI com os principais insights de negócio traduzidos pelo Esquadrão Omega. Os insights são apresentados como "Key Results" visuais com gráficos de apoio.
+Montar a Aba 2 do Streamlit com os principais insights de negócio traduzidos pelo Esquadrão Omega. Os insights são apresentados como "Key Results" visuais com gráficos de apoio.
 
 ### Conteúdo Esperado
 

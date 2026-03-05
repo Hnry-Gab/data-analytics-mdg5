@@ -30,14 +30,14 @@ O produto final será uma Aplicação Web (Dashboard) dividida em 3 Telas Livres
 
 ## 🛠️ A Melhor Stack Tecnológica (Para 4 Dias Corridos)
 
-Dado o nosso prazo hiper-curto e a necessidade de unir **Painel de Dados + Textos + Inteligências Artificiais em Python**, a stack vencedora incontestável é **Python + Frontend/FastAPI**.
+Dado o nosso prazo hiper-curto e a necessidade de unir **Painel de Dados + Textos + Inteligências Artificiais em Python**, a stack vencedora incontestável é **Python + Streamlit**.
 
 Vantagens da Stack escolhida:
 1.  Esqueça desenvolvimento web demorado (HTML, CSS ou React). Você programa os botões e os gráficos das 3 telas **usando puramente código Python** em um único arquivo.
-2.  Como o Machine Learning (Pandas, Scikit-learn, XGBoost) é feito nativamente em Python, o Frontend/FastAPI "roda por cima" da Inteligência Artificial sem precisar construir pontes complexas (APIs REST cheias de rotas) entre Frontend e Backend num curto espaço de tempo.
+2.  Como o Machine Learning (Pandas, Scikit-learn, XGBoost) é feito nativamente em Python, o Streamlit "roda por cima" da Inteligência Artificial sem precisar construir pontes complexas (APIs REST cheias de rotas) entre Frontend e Backend num curto espaço de tempo.
 
 ### Nossa Stack Definitiva:
 *   **Tratamento e ML:** Jupyter Notebook ou Google Colab (Módulos: `pandas`, `scikit-learn` ou `xgboost`).
-*   **Visualização Gráfica:** `ECharts/Chart.js` (Gera gráficos lindos, responsivos e interativos perfeitamente compatíveis com a web).
-*   **Aplicação Final (App.py):** `Frontend/FastAPI` (A "cola" mágica que junta tudo numa interface de navegador).
-*   **Deploy Cloud (Onde o Link vai ficar):** `Render/Railway` ou `Render`. (O deploy do Frontend/FastAPI é tão simples quanto dar permissão na sua conta do Github, ele compila e gera a URL em minutos totalmente de graça).
+*   **Visualização Gráfica:** `plotly` (Gera gráficos lindos, responsivos e interativos perfeitamente compatíveis com a web).
+*   **Aplicação Final (App.py):** `Streamlit` (A "cola" mágica que junta tudo numa interface de navegador).
+*   **Deploy Cloud (Onde o Link vai ficar):** `Streamlit Community Cloud` ou `Render`. (O deploy do Streamlit é tão simples quanto dar permissão na sua conta do Github, ele compila e gera a URL em minutos totalmente de graça).

@@ -16,7 +16,7 @@ Inserir nos slides os gráficos reais e métricas finais do modelo. Substituir t
 1. **Gráfico de Feature Importance** (recebido do ALPHA-10).
 2. **Matriz de Confusão** (recebido do ALPHA-10).
 3. **Métricas do Modelo:** ROC-AUC, Recall, F1-Score (recebidas do ALPHA-10).
-4. **Screenshots do Web App** (recebidos do Delta).
+4. **Screenshots do App Streamlit** (recebidos do Delta).
 5. **Números finais:** Total de pedidos, taxa de atraso, top features.
 
 ## Critério de Aceite

@@ -9,7 +9,7 @@
 
 ## Descrição
 
-Como o Esquadrão Alpha ainda não finalizou o CSV real no Dia 1, criar dados falsos (mockados) para que o Frontend/FastAPI já tenha gráficos de teste aparecendo nas telas. Isso evita que o Delta fique parado esperando o Alpha.
+Como o Esquadrão Alpha ainda não finalizou o CSV real no Dia 1, criar dados falsos (mockados) para que o Streamlit já tenha gráficos de teste aparecendo nas telas. Isso evita que o Delta fique parado esperando o Alpha.
 
 ### Passo a Passo
 
@@ -28,4 +28,4 @@ Como o Esquadrão Alpha ainda não finalizou o CSV real no Dia 1, criar dados fa
 - DELTA-01 (esqueleto criado)
 
 ## Entregável
-Gráficos de teste rodando no Frontend/FastAPI local
+Gráficos de teste rodando no Streamlit local

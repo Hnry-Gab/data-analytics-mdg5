@@ -7,7 +7,7 @@
 
 ## Escopo
 
-Construir uma aplicação web Full-Stack (Frontend Javascript + Backend Python FastAPI) que analise dados históricos de logística do e-commerce Olist e preveja, **em tempo real**, se um novo pedido tem risco de atrasar, permitindo ações preventivas de Growth e retenção. Também deve expor um servidor MCP para integração com Agentes IA externos.
+Construir uma aplicação web unificada (Streamlit) que analise dados históricos de logística do e-commerce Olist e preveja, **em tempo real**, se um novo pedido tem risco de atrasar, permitindo ações preventivas de Growth e retenção.
 
 ## Prazo
 
@@ -18,26 +18,20 @@ Construir uma aplicação web Full-Stack (Frontend Javascript + Backend Python F
 | Esquadrão | Membros | Responsabilidade |
 |:--|:--|:--|
 | **Alpha** (Insights & ML) | Mauricio, Henry, Lucas | EDA, Feature Engineering, treinamento do XGBoost |
-| **Delta** (Painel Visual) | Pablo, Douglas | UI em HTML/CSS/JS, API FastAPI, Servidor MCP |
+| **Delta** (Painel Visual) | Pablo, Douglas | Streamlit App (3 abas), gráficos Plotly |
 | **Omega** (Negócios) | Anderson, Gabriel | Narrativa de negócio, slides, apresentação |
 
 ## Entrega Final
 
-Uma Aplicação Web Full-Stack dividida em:
+Uma Aplicação Web Streamlit com **3 abas**:
 
-**Frontend (Client-Side):**
-1. **Página Gerencial (O Passado):** Dashboard web interativo com filtros por data, estado e categoria.
-2. **Página de Insights (A Inteligência):** Key Results e descobertas de negócio em formato HTML dinâmico.
-3. **Página do Simulador (O Futuro):** Formulário web onde o usuário insere CEP, produto e categoria, acionando a API.
-
-**Backend (Server-Side):**
-- **Olist API (FastAPI):** Recebe requisições JSON do frontend, invoca o modelo XGBoost, calcula o risco de atraso (0 a 100%) e retorna os resultados.
-- **Olist MCP:** Permite que IAs parceiras consultem o motor preditivo e bases de dados do Olist Logistics.
+1. **Painel Gerencial (O Passado):** Dashboard interativo com filtros por data, estado e categoria. Mapa de calor logístico do Brasil.
+2. **Insights Valiosos (A Inteligência):** Key Results e descobertas de negócio em formato texto + gráficos de apoio.
+3. **Motor de Predição (O Futuro):** Formulário "Simulador de Nova Venda" onde o usuário insere CEP, produto e categoria. O modelo de ML retorna a probabilidade de atraso e sugere ações preventivas.
 
 ## Deploy
 
-- **Frontend:** GitHub Pages ou Vercel.
-- **Backend/API:** Render ou Railway (free tiers para Python APIs).
+Streamlit Community Cloud (free tier), vinculado ao repositório GitHub.
 
 ---
 

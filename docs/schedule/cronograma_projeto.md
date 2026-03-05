@@ -29,7 +29,7 @@ Este cronograma serve como o "GPS" analítico do nosso projeto usando os dados d
 
 **5. Fechamento de Insights (Interpretação da EDA Pós-Limpeza)**
 *   **O que é?** A consolidação humana e de negócio após a limpeza final. Analisar a versão polida dos atributos e tirar a decisão final sobre o que diz cada número.
-*   **Ações:** Montar o painel/dashboard final (Em Python/Frontend/FastAPI) com as respostas exatas para: "Sim, os atrasos gerados pela transportadora Y na região Norte estão custando Z mil reais em perda de retenção/Growth".
+*   **Ações:** Montar o painel/dashboard final (Em Python/Streamlit) com as respostas exatas para: "Sim, os atrasos gerados pela transportadora Y na região Norte estão custando Z mil reais em perda de retenção/Growth".
 
 **6. Formulação das *Features* mais Valiosas (Feature Engineering)**
 *   **O que é?** Escolher ou CRIAR as colunas exatas (a partir de contas ou da união de duas variáveis) que serão entregues como o "Gabarito de Treinamento" final para o Robô de Machine Learning aprender sozinho.

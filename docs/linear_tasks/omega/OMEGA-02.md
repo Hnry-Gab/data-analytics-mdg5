@@ -18,7 +18,7 @@ Definir a estrutura macro dos slides da apresentação final. O índice deve con
 3. **Os Dados:** Apresentar o dataset Olist (100k pedidos, 6,77% de atrasos).
 4. **As Descobertas:** Top insights da EDA (rotas problemáticas, categorias, vendedores lentos).
 5. **A Solução Técnica:** Como o XGBoost foi treinado e o que ele aprendeu (Feature Importance).
-6. **Demonstração ao Vivo:** Abrir o Web App e simular um pedido em tempo real.
+6. **Demonstração ao Vivo:** Abrir o App Streamlit e simular um pedido em tempo real.
 7. **Impacto de Negócio:** Como a Olist pode usar a predição para agir proativamente.
 8. **Conclusões e Próximos Passos.**
 
