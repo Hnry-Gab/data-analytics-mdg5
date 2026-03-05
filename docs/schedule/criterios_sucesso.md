@@ -20,7 +20,7 @@ Este documento define os critérios mínimos aceitáveis para considerar o proje
 |:--|:--|
 | Web App rodando sem erros | Obrigatório |
 | 3 abas funcionais (Painel, Insights, Simulador) | Obrigatório |
-| Gráficos interativos (Plotly) carregando | Obrigatório |
+| Gráficos interativos (ECharts/Chart.js) carregando | Obrigatório |
 | Deploy no Render/Railway | Desejável |
 
 ## Critérios de Sucesso da Apresentação

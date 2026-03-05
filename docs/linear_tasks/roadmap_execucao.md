@@ -50,7 +50,7 @@
 | Ordem | Card | Responsável | Branch | Depende de |
 |:--|:--|:--|:--|:--|
 | ⏩ | **ALPHA-06** Seleção top features | Henry | `feat/alpha-06-selecao-features` | ALPHA-05 |
-| 🟢 | **DELTA-04** Gráficos Plotly (Aba 1) | Pablo, Douglas | `feat/delta-04-graficos-plotly` | DELTA-03 |
+| 🟢 | **DELTA-04** Gráficos (Chart.js/ECharts) (Aba 1) | Pablo, Douglas | `feat/delta-04-graficos-ECharts/Chart.js` | DELTA-03 |
 | ⏩ | **OMEGA-03** Narrativa de negócio | Anderson, Gabriel | `docs/omega-03-narrativa-negocios` | ALPHA-06 |
 
 ### Bloco 6 (Tarde)
@@ -138,7 +138,7 @@
 | `feat/delta-01-Frontend/FastAPI-setup` | DELTA-01 | 1 |
 | `feat/delta-02-dados-mockados` | DELTA-02 | 1 |
 | `feat/delta-03-csv-real` | DELTA-03 | 2 |
-| `feat/delta-04-graficos-plotly` | DELTA-04 | 2 |
+| `feat/delta-04-graficos-ECharts/Chart.js` | DELTA-04 | 2 |
 | `feat/delta-05-aba-insights` | DELTA-05 | 3 |
 | `feat/delta-06-simulador-predicao` | DELTA-06 | 3 |
 | `feat/delta-07-deploy` | DELTA-07 | 4 |

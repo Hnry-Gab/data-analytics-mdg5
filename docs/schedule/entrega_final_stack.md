@@ -38,6 +38,6 @@ Vantagens da Stack escolhida:
 
 ### Nossa Stack Definitiva:
 *   **Tratamento e ML:** Jupyter Notebook ou Google Colab (Módulos: `pandas`, `scikit-learn` ou `xgboost`).
-*   **Visualização Gráfica:** `plotly` (Gera gráficos lindos, responsivos e interativos perfeitamente compatíveis com a web).
+*   **Visualização Gráfica:** `ECharts/Chart.js` (Gera gráficos lindos, responsivos e interativos perfeitamente compatíveis com a web).
 *   **Aplicação Final (App.py):** `Frontend/FastAPI` (A "cola" mágica que junta tudo numa interface de navegador).
 *   **Deploy Cloud (Onde o Link vai ficar):** `Render/Railway` ou `Render`. (O deploy do Frontend/FastAPI é tão simples quanto dar permissão na sua conta do Github, ele compila e gera a URL em minutos totalmente de graça).

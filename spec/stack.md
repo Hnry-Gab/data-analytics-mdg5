@@ -17,7 +17,7 @@
 - `joblib` — Serialização do modelo treinado (exportar `.pkl`)
 
 ## Visualização
-- `plotly` — Gráficos interativos (barras, dispersão, mapas choropleth) compatíveis com Streamlit
+- `ECharts/Chart.js` — Gráficos interativos (barras, dispersão, mapas choropleth) compatíveis com chamadas assíncronas no JS
 
 ## Aplicação Web (Frontend)
 - **HTML5 / CSS3 Vanilla** — Sem frameworks pesados (Tailwind só se necessário), foco em Web Design moderno (Glassmorphism, Dark mode).

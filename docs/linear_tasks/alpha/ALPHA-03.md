@@ -15,7 +15,7 @@ Rodar a primeira bateria de correlações para descobrir quais variáveis numér
 
 1. Selecionar apenas colunas numéricas do DataFrame.
 2. Calcular `df.corr(method='pearson')['foi_atraso'].sort_values()`.
-3. Gerar um heatmap visual (Plotly ou Seaborn temporário) das top 10 correlações.
+3. Gerar um heatmap visual (ECharts/Chart.js ou Seaborn temporário) das top 10 correlações.
 4. Documentar achados: "Quais variáveis mais correlacionam positiva e negativamente com atraso?"
 5. Investigar correlações espúrias (ex: `price` e `freight_value` são altamente correlacionadas entre si? Se sim, uma delas pode ser removida).
 
