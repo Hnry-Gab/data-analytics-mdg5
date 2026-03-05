@@ -1,6 +1,6 @@
 # Cronograma de Análise de Dados e Modelagem Preditiva
 
-Este cronograma serve como o "GPS" analítico do nosso projeto usando os dados do Olist. Ele descreve o passo a passo exato desde o primeiro contato cego com as tabelas até o *deploy* do modelo preditivo que vai antecipar problemas logísticos e notas de reviews.
+Este cronograma serve como o "GPS" analítico do nosso projeto usando os dados do Olist. Ele descreve o passo a passo exato desde o primeiro contato cego com as tabelas até o *deploy* do modelo preditivo que vai antecipar problemas logísticos e retenção.
 
 ---
 
@@ -18,7 +18,7 @@ Este cronograma serve como o "GPS" analítico do nosso projeto usando os dados d
 ### Fase 2: Exploração aprofundada (Onde estamos hoje)
 **3. EDA Nichada**
 *   **O que é?** Uma nova Análise Exploratória, mas agora focando exclusivamente nos nichos escolhidos, buscando os fatores causadores da dor (Atraso/Nota 1) nos contextos.
-*   **Ações:** Validar as Hipóteses listadas no arquivo [Fase EDA Nichada](fase_eda_nichada.md). Vamos gerar Heatmaps, Gráficos de Dispersão e realizar os Testes de [Correlação de Pearson](../algorithms/explicacao_correlacao_pearson.md) focando principalmente nos relacionamentos com as tabelas de Geolocation e Review Score.
+*   **Ações:** Validar as Hipóteses listadas no arquivo [Fase EDA Nichada](fase_eda_nichada.md). Vamos gerar Heatmaps, Gráficos de Dispersão e realizar os Testes de [Correlação de Pearson](../algorithms/explicacao_correlacao_pearson.md) focando principalmente nos relacionamentos com as tabelas de Geolocation.
 
 ---
 
@@ -29,7 +29,7 @@ Este cronograma serve como o "GPS" analítico do nosso projeto usando os dados d
 
 **5. Fechamento de Insights (Interpretação da EDA Pós-Limpeza)**
 *   **O que é?** A consolidação humana e de negócio após a limpeza final. Analisar a versão polida dos atributos e tirar a decisão final sobre o que diz cada número.
-*   **Ações:** Montar o painel/dashboard final (Em Python ou PowerBI) com as respostas exatas para: "Sim, os atrasos gerados pela transportadora Y na região Norte estão custando Z mil reais em perda de retenção/Growth".
+*   **Ações:** Montar o painel/dashboard final (Em Python/Streamlit) com as respostas exatas para: "Sim, os atrasos gerados pela transportadora Y na região Norte estão custando Z mil reais em perda de retenção/Growth".
 
 **6. Formulação das *Features* mais Valiosas (Feature Engineering)**
 *   **O que é?** Escolher ou CRIAR as colunas exatas (a partir de contas ou da união de duas variáveis) que serão entregues como o "Gabarito de Treinamento" final para o Robô de Machine Learning aprender sozinho.
