@@ -18,6 +18,7 @@ __pycache__/
 # Full ralph, individual workflow
 .ralph/
 .ralphrc
+.ralph/script/
 
 # Ralph generated files (inside .ralph/ subfolder)
 .ralph/.call_count
@@ -71,3 +72,6 @@ data/raw/*.csv
 
 # Processed data cache
 data/processed/
+
+# Generated datasets in notebooks
+notebooks/*.csv
