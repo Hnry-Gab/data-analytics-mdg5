@@ -73,5 +73,5 @@ data/raw/*.csv
 # Processed data cache
 data/processed/
 
-# Generated datasets in notebooks
-notebooks/*.csv
+# Ignorar dataset estendido de 41 colunas (muito pesado)
+notebooks/Mauricio/dataset_unificado_v1.csv
