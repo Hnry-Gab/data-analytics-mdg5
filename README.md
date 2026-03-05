@@ -1,290 +1,118 @@
-# Olist E-Commerce Growth Analytics
+# Olist Logistics Growth — Previsão de Atrasos 📦🚚
 
-Plataforma de inteligência de cliente e analytics de crescimento para o dataset Olist Brazilian E-Commerce, habilitando decisões data-driven para retenção, otimização de CLV e crescimento de receita através de modelos de machine learning avançados e visualizações interativas.
+Aplicação de Machine Learning focada em **prever atrasos logísticos** no e-commerce da Olist, utilizando dados reais de ~100 mil pedidos para reduzir cancelamentos e maximizar a retenção de clientes (Growth).
 
 ---
 
-## Dataset & Schema
+## 🎯 Objetivo
 
-**Fonte:** Olist Brazilian E-Commerce Public Dataset (Kaggle)  
-**Período:** Setembro 2016 - Outubro 2018  
-**Volume:** ~100k ordens, ~99k clientes, ~1M registros (8 tabelas CSV)
+Construir uma aplicação web (Streamlit) com 3 abas que permita:
 
-**Tabelas Principais:**
-- `customers`: Identificação e geolocalização do cliente
-- `orders`: Timestamps, status e métricas de entrega
-- `order_items`: Produtos, preços e frete por ordem
-- `payments`: Tipo de pagamento, parcelas e valor
-- `reviews`: Avaliações e comentários (NLP)
-- `products`: Categorias e características físicas
-- `sellers`: Informações dos vendedores
-- `category_translation`: Tradução de categorias PT→EN
+1. **Painel Gerencial** — Dashboard interativo com métricas logísticas históricas, filtros por estado/data e mapa de calor do Brasil.
+2. **Insights Valiosos** — Descobertas de negócio sobre os principais ofensores de atraso (rotas, vendedores, categorias).
+3. **Motor de Predição** — Simulador onde o usuário insere dados de um novo pedido (CEP, produto, frete) e o modelo de ML retorna a probabilidade de atraso.
 
-**Schema DataFrame Master:**
-```python
-{
-    'order_id', 'customer_unique_id', 'order_status',
-    'order_purchase_timestamp', 'delivery_delay_days',
-    'customer_state', 'customer_city',
-    'product_category_name_english', 'price', 'freight_value',
-    'total_order_value', 'payment_type', 'payment_installments',
-    'review_score', 'review_comment_message'
-}
+---
+
+## 📊 Dataset
+
+**Fonte:** [Olist Brazilian E-Commerce (Kaggle)](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)
+**Período:** Set/2016 — Out/2018
+**Volume:** ~100k pedidos | 9 tabelas CSV
+
+| Tabela | Descrição |
+|:--|:--|
+| `olist_orders_dataset` | Base principal com datas de entrega (estimada vs real) |
+| `olist_customers_dataset` | Estado e CEP do cliente |
+| `olist_order_items_dataset` | Preço, frete e vendedor por item |
+| `olist_products_dataset` | Peso, dimensões e categoria do produto |
+| `olist_sellers_dataset` | Estado e CEP do vendedor |
+| `olist_geolocation_dataset` | Latitude/Longitude por CEP |
+| `olist_order_payments_dataset` | Tipo e valor do pagamento |
+| `olist_order_reviews_dataset` | Avaliações dos clientes |
+| `product_category_name_translation` | Tradução PT→EN das categorias |
+
+---
+
+## 🧠 Modelo de Machine Learning
+
+| Aspecto | Detalhe |
+|:--|:--|
+| **Algoritmo** | XGBoost Classifier (Classificação Binária) |
+| **Variável Alvo** | `foi_atraso` → 1 se entregou depois do prazo, 0 se no prazo |
+| **Distribuição** | 93,22% no prazo / 6,77% atrasado (desbalanceado) |
+| **Métrica Principal** | ROC-AUC ≥ 0.70 |
+| **Balanceamento** | `scale_pos_weight` + Split Estratificado |
+
+> Detalhes completos em [`spec/model_spec.md`](spec/model_spec.md)
+
+---
+
+## 🛠️ Stack Tecnológica
+
+| Função | Biblioteca |
+|:--|:--|
+| Dados | `pandas`, `numpy` |
+| Machine Learning | `scikit-learn`, `xgboost`, `joblib` |
+| Visualização | `plotly` |
+| Aplicação Web | `streamlit` |
+| Deploy | Streamlit Community Cloud |
+
+> Stack completa em [`spec/stack.md`](spec/stack.md)
+
+---
+
+## 📁 Estrutura do Repositório
+
+```
+olist-dataset/
+├── dataset/              # CSVs originais (ignorados pelo Git)
+├── docs/                 # Planejamento, cronograma, insights e dicionário de dados
+│   ├── data/             # Dicionário de dados e guia de features
+│   ├── insights/         # Hipóteses de negócio e análise de atraso
+│   ├── algorithms/       # Material didático (Pearson, K-Means)
+│   └── schedule/         # Cronograma de 4 dias e sprints diários
+├── spec/                 # Especificação técnica para agentes de IA
+│   ├── project_spec.md   # Escopo, restrições e regras do projeto
+│   ├── stack.md          # Stack oficial
+│   ├── data_schema.md    # Schema do DataFrame e features
+│   └── model_spec.md     # Configuração do XGBoost
+├── .gitignore
+└── README.md
 ```
 
 ---
 
-## Stack Tecnológica
+## 👥 Equipe
 
-**Core:** Python 3.10+, pandas, numpy  
-**Machine Learning:** scikit-learn, XGBoost/LightGBM, lifetimes  
-**Causal Inference:** causalml (Uplift Modeling)  
-**NLP:** nltk, spacy (processamento de texto em português)  
-**Visualização:** plotly, seaborn, streamlit  
-**Storage:** parquet (compressão snappy)  
-**Testes:** pytest, playwright (E2E dashboard)  
-**VCS:** Git (main=production, development=dev)
+| Esquadrão | Membros | Foco |
+|:--|:--|:--|
+| 🐺 **Alpha** (Insights & ML) | Mauricio, Henry, Lucas | EDA, Feature Engineering, XGBoost |
+| 🦅 **Delta** (Painel Visual) | Pablo, Douglas | App Streamlit, gráficos Plotly |
+| 🦉 **Omega** (Negócios) | Anderson, Gabriel | Narrativa, slides, apresentação |
 
 ---
 
-## Técnicas de Análise
+## 🚀 Setup & Execução
 
-**Descritiva:** RFM, Cohort Analysis, Geographic, Funnel  
-**Preditiva:** Churn Prediction (>180 dias), CLV Prediction, Order Prediction  
-**Causal:** Uplift Modeling (incentivos), Attribution Analysis (reviews, frete, pagamento)  
-**NLP:** Sentiment Analysis, Topic Modeling, Text Preprocessing  
-**Association Rules:** Cross-sell, Apriori Algorithm, Market Basket Analysis
-
----
-
-## Modelos de Predição
-
-**Churn Prediction:** XGBoost Classifier
-- Features: Recência, Frequência, Monetary, avg_review_score, avg_delivery_delay, payment_type, product_category, customer_state
-- Target: `churn_flag` (1 = inativo >180 dias)
-- Output: `churn_probability` (0-1)
-
-**CLV Prediction:** BG/NBD + Gamma-Gamma (Probabilístico)
-- BG/NBD: Prediz transações futuras (frequency, recency, T)
-- Gamma-Gamma: Estima valor monetário por transação
-- Output: `expected_purchases`, `expected_clv` (90/180/365 dias)
-
-**Review Sentiment:** NLP Pipeline
-- Preprocessing: lowercase, stopwords PT, tokenization, stemming
-- Features: TF-IDF vectors
-- Model: Logistic Regression / Naive Bayes
-- Output: `sentiment_score` (-1 a 1)
-
-**Uplift Modeling:** Two-Model Approach / CausalML Meta-Learners
-- Treatment: campanha/incentivo
-- Control: sem intervenção
-- Output: `uplift_score` (lift incremental)
-
----
-
-## Estratégias de Clustering
-
-**RFM Clustering (K-Means):**
-- Features: Recency, Frequency, Monetary
-- Preprocessing: log transform, StandardScaler, outlier handling
-- n_clusters=5: Champions, Loyal Customers, Potential Loyalists, At Risk, Lost
-
-**BG/NBD Segmentation (Probabilístico):**
-- Valuable High-CLV (top 25%, baixo risco)
-- Loyal Mid-CLV (meio 50%, baixo risco)
-- Developing (CLV menor, engajamento moderado)
-- At Risk (CLV moderado, alta prob. churn)
-- Lost/Hibernating (CLV baixo, alta prob. churn)
-
-**Geographic Clustering:** Estados por GMV, crescimento, atraso entrega, churn
-
-**Category-Based Clustering:** Categorias por preço, volume, frete, review, cancelamento
-
----
-
-## Estrutura do Projeto (7 Partes)
-
-Cada parte possui complexidade e carga de trabalho balanceadas (densidade média):
-
-**Part 1: Data Pipeline Foundation**
-- Ingestão CSV, joins sequenciais, limpeza, cache parquet, configuração
-
-**Part 2: Customer Analytics Core**
-- RFM analysis, feature engineering, churn labels, cohort analysis
-
-**Part 3: Segmentation Models**
-- K-Means clustering, BG/NBD, segment labeling logic
-
-**Part 4: Value Prediction**
-- CLV calculation, Gamma-Gamma, probabilistic forecasting
-
-**Part 5: Churn Prediction**
-- XGBoost model, feature engineering, feature importance, SHAP
-
-**Part 6: Advanced Analytics**
-- NLP sentiment analysis, cross-sell Apriori, causal inference (uplift)
-
-**Part 7: Dashboard & Testing**
-- Streamlit multi-page app (5 páginas), E2E tests (Playwright), unit tests (pytest)
-
----
-
-## Entregáveis
-
-**Módulos Python (`src/`):**
-```
-config.py           # Constantes e paths
-data_loader.py      # Ingestão CSV e master order join
-data_cleaner.py     # Missing values, outliers, timestamps
-feature_engineering.py  # RFM, CLV, churn labels, derived features
-cache.py            # DataFrame parquet caching + decorators
-models/rfm.py       # K-Means clustering
-models/clv.py       # CLV calculation + BG/NBD
-models/churn.py     # Churn prediction (XGBoost)
-models/cross_sell.py # Market basket analysis
-models/bgnd.py      # BG/NBD probabilistic modeling
-models/sentiment.py # NLP sentiment analysis
-attribution.py      # Geographic, payment, cohort
-```
-
-**Jupyter Notebook (`notebooks/`):**
-- `olist_analysis.ipynb`: EDA completo, visualizações, todos os modelos, insights
-
-**Streamlit Dashboard (`dashboard/`):**
-```
-app.py                    # Multi-page shell
-pages/01_overview.py      # KPIs, time series, mapa geográfico
-pages/02_rfm.py           # 3D scatter, segment summary
-pages/03_clv.py           # CLV distribution, top customers
-pages/04_churn.py         # Risk distribution, feature importance
-pages/05_attribution.py   # Payment, cohort, cross-sell
-```
-
-**Testes (`tests/`):**
-- Unit tests (todos os módulos)
-- Data validation tests
-- Model prediction tests
-- E2E dashboard tests (Playwright)
-
-**Documentação:**
-- README.md
-- spec/macro.md (planejamento macro)
-- spec/plan/part_1.md ... part_7.md (planejamento micro)
-- .streamlit/config.toml (configuração Streamlit)
-
----
-
-## Setup & Execução
-
-**Instalação:**
 ```bash
+# Instalar dependências
 pip install -r requirements.txt
-```
 
-**Executar Dashboard:**
-```bash
-cd dashboard
+# Rodar o Dashboard
 streamlit run app.py
 ```
 
-**Executar Testes:**
-```bash
-pytest tests/
-```
-
-**Estrutura de Branches:**
-- `main` → PRODUCTION
-- `development` → DEVELOPMENT
-- `feat/feature`, `fix/fix`, `chore/doc`, `refactor/feature`
-- Pull requests para code review
-
 ---
 
-## Convenções de Git
+## 📝 Convenções de Git
 
-**Branches:**
-- `main`: produção estável
-- `development`: desenvolvimento contínuo
-- `feat/`: novas features
-- `fix/`: correções de bugs
-- `chore/`: documentação, refatoração
+| Prefixo | Uso |
+|:--|:--|
+| `feat/` | Novas funcionalidades |
+| `fix/` | Correções de bugs |
+| `docs/` | Documentação |
+| `refactor/` | Refatoração de código |
 
-**Commits:**
-- Mensagens descritivas e concisas
-- Prefixos: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`
-
-**Pull Requests:**
-- Code review obrigatório
-- Tests passando antes do merge
-- Documentação atualizada
-
----
-
-## Design System Dashboard
-
-**Cores:**
-- Primária: To Implement
-- Background: To Implement
-- Background Secundário: To Implement
-- Texto: To Implement
-
-**Tipografia:** To Implement
-**Layout:** To Implement
-**Caching:** @st.cache_data com ttl=3600 (1 hora)
-
-**Visualizações:**
-- plotly.express: gráficos interativos (scatter, line, bar, choropleth)
-- plotly.graph_objects: customizações avançadas
-- st.metric(): KPI cards com delta
-- st.dataframe(): tabelas com ordenação
-- px.scatter_3d(): visualização 3D RFM
-- px.choropleth(): mapa geográfico
-
----
-
-## Performance & Otimização
-
-**Data Pipeline:**
-- Parquet com compressão snappy (I/O otimizado)
-- Joins sequenciais para evitar perda de dados
-- @cache_dataframe decorator (save/load automático)
-
-**Dashboard:**
-- @st.cache_data para carregamento de dados
-- Limitar tamanho de figuras plotly em datasets grandes
-
-**Model Training:**
-- Feature scaling obrigatório (StandardScaler/RobustScaler)
-- Outlier handling (cap at 99th percentile)
-- Cross-validation para validação de modelos
-
----
-
-## Métricas de Avaliação
-
-**Churn Model:** ROC-AUC, Precision, Recall, F1-Score  
-**CLV Model:** Comparação Simple vs. BG/NBD (MAE, RMSE)  
-**RFM Clustering:** Silhouette Score, Elbow Method  
-**Sentiment Model:** Accuracy, Classification Report  
-**Uplift Model:** AUUC (Area Under Uplift Curve)
-
----
-
-## Riscos & Mitigação
-
-**Data Leakage:** Limpar timestamps considerando "tempo de corte"  
-**Custo de Memória:** Unir tabelas progressivamente, usar Parquet  
-**Desbalanceamento de Classes:** SMOTE, scale_pos_weight (XGBoost)  
-**Janela Estática:** Dataset limitado 2016-2018, churn >180 dias pode ser muito longo  
-**Frequência:** 95% clientes compraram apenas 1 vez (F=1 enviesado)  
-**Premissa Gamma-Gamma:** Validar independência entre valor monetário e frequência  
-**K-Means Sensitivity:** Escalar dados antes do treino, outliers tratados
-
----
-
-## Contato
-
-Para questões sobre implementação, bugs ou melhorias, consulte:
-- `spec/macro.md`: Planejamento completo do projeto
-- `spec/plan/part_*.md`: Detalhes de cada fase de implementação
-- Issues no GitHub para bugs e feature requests
+**Commits:** Usar prefixos semânticos (`feat:`, `fix:`, `docs:`, `refactor:`).
+**Pull Requests:** Revisão obrigatória antes do merge na `main`.
