@@ -1,0 +1,16 @@
+# Gitignore Olist
+
+# Ignorar o peso da pasta dataset original, mantendo o readme dela visível na nuvem
+dataset/*.csv
+
+# Ignorar ambientes virtuais Python se forem criados futuramente
+venv/
+env/
+.venv/
+.env/
+
+# Ignorar caches e arquivos compilados de Machine Learning
+__pycache__/
+*.pkl
+*.joblib
+*.ipynb_checkpoints/
