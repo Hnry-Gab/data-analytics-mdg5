@@ -1,0 +1,28 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main
+      - feature/integracao-final
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd ~/olist-dataset || git clone https://github.com/Hnry-Gab/data-analytics-mdg5.git ~/olist-dataset
+            cd ~/olist-dataset
+            git pull origin feature/integracao-final
+            docker compose down
+            docker compose up -d --build
+            docker system prune -f

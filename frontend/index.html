@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title data-i18n="title">Olist — Logistics Intelligence</title>
+    <title data-i18n="title">Olist | Logistics Intelligence</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="stylesheet" href="css/style.css">
     <script src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>
 </head>
@@ -25,10 +26,10 @@
     <span class="ky-cross ky-cross--br">+</span>
 
     <!-- Keita Yamada — FUI Metadata -->
-    <div class="fui-corner fui-corner--tl">[PROJ_ID: OLIST-2025]</div>
+    <div class="fui-corner fui-corner--tl">[PROJ_ID: OLIST-2026]</div>
     <div class="fui-corner fui-corner--tr" id="fui-clock">00:00:00 UTC</div>
     <div class="fui-corner fui-corner--bl">-23.5505 / -46.6333</div>
-    <div class="fui-corner fui-corner--br">V1.0.0 — FIAP</div>
+    <div class="fui-corner fui-corner--br">V1.0.0 — ALPHA EDTECH</div>
 
     <!-- Navigation -->
     <nav id="top-nav">
@@ -52,7 +53,7 @@
             </div>
             <div class="nav-status">
                 <span class="status-dot"></span>
-                <span class="status-text">Esquadrao Delta</span>
+                <span class="status-text">GRUPO 5</span>
             </div>
         </div>
     </nav>
@@ -144,15 +145,18 @@
             </div>
 
             <!-- Map + Ranking -->
-            <div class="grid-asymmetric reveal">
+            <div class="grid-asymmetric reveal" id="dash-geo-grid">
                 <div class="glass-card chart-card">
                     <div class="chart-header">
-                        <div class="chart-label" data-i18n="dash.chartGeo">GEOGRAPHIC DISTRIBUTION</div>
+                        <div class="chart-label">
+                            <span data-i18n="dash.chartGeo">GEOGRAPHIC DISTRIBUTION</span>
+                            <span class="state-badge" id="dash-state-badge" style="display: none;"></span>
+                        </div>
                         <div class="chart-tag" data-i18n="dash.tagChoropleth">Choropleth</div>
                     </div>
                     <div id="dash-map"></div>
                 </div>
-                <div class="glass-card chart-card">
+                <div class="glass-card chart-card" id="dash-rank-card">
                     <div class="chart-header">
                         <div class="chart-label" data-i18n="dash.chartTopStates">TOP DELAY STATES</div>
                         <div class="chart-tag" data-i18n="dash.tagRanking">Ranking</div>
@@ -285,6 +289,26 @@
                 </div>
             </div>
 
+            <div class="section-divider"></div>
+
+            <!-- Section 05 — Macro-Region Routes -->
+            <div class="insight-section reveal">
+                <div class="section-side">
+                    <span class="vertical-label" data-i18n="ins.labelMacro">MACRO-REGION</span>
+                    <span class="section-num">05</span>
+                </div>
+                <div class="section-body">
+                    <h2 class="section-title" data-i18n="ins.titleMacro">Macro-Region Routes</h2>
+                    <p class="editorial" data-i18n="ins.macroText" style="margin-bottom:2rem">
+                        Detailed heatmap of delay rates between origin and destination regions.
+                        Highlights logistical bottlenecks such as Southeast to North/Northeast routes.
+                    </p>
+                    <div class="glass-card chart-card">
+                        <div id="ins-heatmap-chart"></div>
+                    </div>
+                </div>
+            </div>
+
         </section>
 
         <!-- ═══════════════════════════════════════════════════════════ -->
@@ -303,7 +327,7 @@
 
             <div class="predictor-layout reveal">
                 <!-- Form Panel -->
-                <div class="glass-card predictor-form">
+                <div class="predictor-form">
                     <div class="form-header">
                         <span class="form-header-dot"></span>
                         <span data-i18n="pred.parameters">Parameters</span>
@@ -312,78 +336,81 @@
                     <div class="form-group-label" data-i18n="pred.route">Route</div>
                     <div class="form-row">
                         <div class="form-field">
-                            <label class="field-label" data-i18n="pred.origin">Origin</label>
-                            <select id="pred-origin">
-                                <option value="AC">AC</option><option value="AL">AL</option>
-                                <option value="AM">AM</option><option value="AP">AP</option>
-                                <option value="BA">BA</option><option value="CE">CE</option>
-                                <option value="DF">DF</option><option value="ES">ES</option>
-                                <option value="GO">GO</option><option value="MA">MA</option>
-                                <option value="MG">MG</option><option value="MS">MS</option>
-                                <option value="MT">MT</option><option value="PA">PA</option>
-                                <option value="PB">PB</option><option value="PE">PE</option>
-                                <option value="PI">PI</option><option value="PR">PR</option>
-                                <option value="RJ">RJ</option><option value="RN">RN</option>
-                                <option value="RO">RO</option><option value="RR">RR</option>
-                                <option value="RS">RS</option><option value="SC">SC</option>
-                                <option value="SE">SE</option><option value="SP" selected>SP</option>
-                                <option value="TO">TO</option>
-                            </select>
+                            <label class="field-label" data-i18n="pred.originCep">Origin CEP (8 digits)</label>
+                            <input type="text" id="pred-origin-cep" value="01001000" maxlength="8">
                         </div>
                         <div class="form-field">
-                            <label class="field-label" data-i18n="pred.destination">Destination</label>
-                            <select id="pred-dest">
-                                <option value="AC">AC</option><option value="AL">AL</option>
-                                <option value="AM">AM</option><option value="AP">AP</option>
-                                <option value="BA">BA</option><option value="CE">CE</option>
-                                <option value="DF">DF</option><option value="ES">ES</option>
-                                <option value="GO">GO</option><option value="MA">MA</option>
-                                <option value="MG">MG</option><option value="MS">MS</option>
-                                <option value="MT">MT</option><option value="PA">PA</option>
-                                <option value="PB">PB</option><option value="PE">PE</option>
-                                <option value="PI">PI</option><option value="PR">PR</option>
-                                <option value="RJ" selected>RJ</option><option value="RN">RN</option>
-                                <option value="RO">RO</option><option value="RR">RR</option>
-                                <option value="RS">RS</option><option value="SC">SC</option>
-                                <option value="SE">SE</option><option value="SP">SP</option>
-                                <option value="TO">TO</option>
-                            </select>
+                            <label class="field-label" data-i18n="pred.destCep">Dest CEP (8 digits)</label>
+                            <input type="text" id="pred-dest-cep" value="20000000" maxlength="8">
                         </div>
                     </div>
 
                     <div class="form-group-label" data-i18n="pred.product" style="margin-top:1.5rem">Product</div>
                     <div class="form-row">
+                        <div class="form-field" style="width: 100%; margin-bottom: 12px;">
+                            <label class="field-label" data-i18n="pred.category">Category</label>
+                            <select id="pred-category">
+                                <option value="beleza_saude">Beleza e Saúde</option>
+                                <option value="relogios_presentes">Relógios e Presentes</option>
+                                <option value="cama_mesa_banho">Cama, Mesa e Banho</option>
+                                <option value="esporte_lazer">Esporte e Lazer</option>
+                                <option value="informatica_acessorios">Informática e Acessórios</option>
+                                <option value="moveis_decoracao">Móveis e Decoração</option>
+                                <option value="utilidades_domesticas">Utilidades Domésticas</option>
+                                <option value="brinquedos">Brinquedos</option>
+                                <option value="automotivo">Automotivo</option>
+                                <option value="ferramentas_jardim">Ferramentas e Jardim</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
                         <div class="form-field">
                             <label class="field-label" data-i18n="pred.weight">Weight (g)</label>
-                            <input type="number" id="pred-weight" value="500" min="0" step="100">
+                            <input type="number" id="pred-weight" value="1000" min="0" step="100">
                         </div>
                         <div class="form-field">
                             <label class="field-label" data-i18n="pred.price">Price (R$)</label>
-                            <input type="number" id="pred-price" value="100" min="0" step="10">
+                            <input type="number" id="pred-price" value="50" min="0" step="5">
                         </div>
                     </div>
                     <div class="form-row">
                         <div class="form-field">
                             <label class="field-label" data-i18n="pred.volume">Volume (cm³)</label>
-                            <input type="number" id="pred-volume" value="1000" min="0" step="500">
+                            <input type="number" id="pred-volume" value="2000" min="0" step="100">
                         </div>
                         <div class="form-field">
                             <label class="field-label" data-i18n="pred.freight">Freight (R$)</label>
-                            <input type="number" id="pred-freight" value="25" min="0" step="5">
+                            <input type="number" id="pred-freight" value="15" min="0" step="5">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label class="field-label" data-i18n="pred.items">Total Items</label>
+                            <input type="number" id="pred-items" value="1" min="1" step="1">
+                        </div>
+                        <div class="form-field">
+                            <label class="field-label" data-i18n="pred.estimatedDays">Estimated Days</label>
+                            <input type="number" id="pred-estimated-days" value="10" min="1" step="1">
                         </div>
                     </div>
 
                     <div class="form-group-label" data-i18n="pred.operations" style="margin-top:1.5rem">Operations</div>
                     <div class="form-field">
-                        <label class="field-label" data-i18n-html="pred.sellerDays">Seller shipping days: <span class="field-val" id="seller-days-val">3</span></label>
-                        <input type="range" id="pred-seller-days" min="0" max="15" value="3" step="1" class="cw-range">
+                        <label class="field-label" data-i18n-html="pred.sellerDays">Seller shipping days: <span class="field-val" id="seller-days-val">2</span></label>
+                        <input type="range" id="pred-seller-days" min="0" max="15" value="2" step="1" class="cw-range">
                     </div>
-                    <div class="form-field">
-                        <label class="field-label" data-i18n-html="pred.purchaseDay">Purchase day: <span class="field-val" id="purchase-day-val">Mon</span></label>
-                        <input type="range" id="pred-day" min="0" max="6" value="0" step="1" class="cw-range">
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label class="field-label" data-i18n="pred.sellerHistory">Seller Delay Rate (0-1)</label>
+                            <input type="number" id="pred-seller-history" value="0.05" min="0" max="1" step="0.01">
+                        </div>
+                        <div class="form-field">
+                            <label class="field-label" data-i18n="pred.sellerOrders">Seller Past Orders</label>
+                            <input type="number" id="pred-seller-orders" value="50" min="0" step="10">
+                        </div>
                     </div>
 
-                    <button id="pred-submit" class="btn-lime" data-i18n="pred.submit">Run Simulation →</button>
+                    <button id="pred-submit" class="btn-lime" data-i18n="pred.submit" style="margin-top:1.5rem">Run Simulation →</button>
                 </div>
 
                 <!-- Result Panel -->
@@ -420,21 +447,21 @@
                 <span class="ky-mx-accent">27 States</span>
                 <span>Delay Prediction</span>
                 <span class="ky-mx-accent">Machine Learning</span>
-                <span>Esquadrao Delta</span>
-                <span class="ky-mx-accent">FIAP 2025</span>
+                <span>GRUPO 5</span>
+                <span class="ky-mx-accent">ALPHA EDTECH 2026</span>
                 <span>Olist Intelligence</span>
                 <span class="ky-mx-accent">96K+ Orders</span>
                 <span>Logistics Analytics</span>
                 <span class="ky-mx-accent">27 States</span>
                 <span>Delay Prediction</span>
                 <span class="ky-mx-accent">Machine Learning</span>
-                <span>Esquadrao Delta</span>
-                <span class="ky-mx-accent">FIAP 2025</span>
+                <span>GRUPO 5</span>
+                <span class="ky-mx-accent">ALPHA EDTECH 2026</span>
             </div>
         </div>
         <div class="footer-inner">
             <span class="footer-brand">◉ Olist Intelligence</span>
-            <span class="footer-text" data-i18n="footer.text">Esquadrao Delta — CloudWalk Data Challenge</span>
+            <span class="footer-text" data-i18n="footer.text">GRUPO 5 — CloudWalk Data Challenge</span>
         </div>
     </footer>
 

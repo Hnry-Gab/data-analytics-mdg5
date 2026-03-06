@@ -1,158 +1,82 @@
 """
-Schemas Pydantic para validação de dados de entrada e saída
+Schemas Pydantic para validação de dados de entrada e saída (V5 CatBoost)
 """
 from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Dict, Any
-
+from datetime import datetime
 
 class PedidoInput(BaseModel):
     """
-    Dados de entrada para predição de atraso logístico
+    Dados de entrada brutos para predição de atraso logístico V5
     """
-    cep_cliente: str = Field(
-        ...,
-        description="CEP do cliente (8 dígitos)",
-        min_length=8,
-        max_length=8,
-        pattern=r'^\d{8}$'
-    )
-    cep_vendedor: str = Field(
-        ...,
-        description="CEP do vendedor (8 dígitos)",
-        min_length=8,
-        max_length=8,
-        pattern=r'^\d{8}$'
-    )
-    categoria_produto: str = Field(
-        ...,
-        description="Categoria do produto (ex: eletronicos, moda, casa)",
-        min_length=1
-    )
-    peso_produto_kg: float = Field(
-        ...,
-        gt=0,
-        description="Peso do produto em quilogramas",
-        example=2.5
-    )
-    preco_frete: float = Field(
-        ...,
-        gt=0,
-        description="Preço do frete em reais",
-        example=15.00
-    )
-    peso_produto_volume_cm3: float = Field(
-        ...,
-        gt=0,
-        description="Volume do produto em cm³",
-        example=5000.0
-    )
+    # Dados de Localidade e Categoria (Textuais Nativas)
+    cep_cliente: str = Field(..., description="CEP do destinatário (8 dígitos)", min_length=8, max_length=8, pattern=r'^\d{8}$')
+    cep_vendedor: str = Field(..., description="CEP do remetente (8 dígitos)", min_length=8, max_length=8, pattern=r'^\d{8}$')
+    categoria_produto: str = Field(..., description="Nome da categoria (ex: 'beleza_saude')", min_length=1)
+    
+    # Dados Dimensionais e Preço
+    peso_produto_g: float = Field(..., gt=0, description="Peso em gramas", example=1500.0)
+    preco_produto: float = Field(..., gt=0, description="Valor do produto em reais", example=149.90)
+    preco_frete: float = Field(..., gt=0, description="Valor do frete em reais", example=25.00)
+    volume_cm3: float = Field(..., gt=0, description="Volume da caixa em cm³", example=3500.0)
+    total_itens_pedido: int = Field(1, ge=1, description="Qtd de itens neste pacote", example=1)
+    
+    # Dados de Prazos (SLA)
+    prazo_estimado_dias: int = Field(..., ge=1, description="SLA prometido ao cliente (Dias para entrega)", example=15)
+    
+    # Dados do Vendedor (Históricos Simulados/Reais)
+    velocidade_lojista_dias: float = Field(..., ge=0, description="Média de dias que o lojista leva para postar no correio", example=2.5)
+    historico_atraso_vendedor: float = Field(..., ge=0, description="Taxa de atraso histórica do lojista (0.0 a 1.0)", example=0.08)
+    qtd_pedidos_anteriores_vendedor: int = Field(..., ge=0, description="Volumetria total do lojista", example=45)
+    
+    # Contexto Temporal
+    data_aprovacao: str = Field(..., description="Data/Hora da compra (ISO 8601)", example="2018-02-15T14:30:00")
 
     @field_validator('cep_cliente', 'cep_vendedor')
     @classmethod
     def validate_cep(cls, v: str) -> str:
-        """Valida formato do CEP"""
-        if not v.isdigit():
-            raise ValueError('CEP deve conter apenas dígitos')
-        if len(v) != 8:
-            raise ValueError('CEP deve ter exatamente 8 dígitos')
+        if not v.isdigit(): raise ValueError('CEP deve conter apenas dígitos')
+        if len(v) != 8: raise ValueError('CEP deve ter exactly 8 dígitos')
         return v
 
     @field_validator('categoria_produto')
     @classmethod
     def validate_categoria(cls, v: str) -> str:
-        """Normaliza categoria do produto"""
-        return v.lower().strip()
+        # Converter hifens ou espaços pra underline p/ seguir padrão Olist
+        return v.lower().strip().replace(" ", "_").replace("-", "_")
 
     class Config:
         json_schema_extra = {
             "example": {
                 "cep_cliente": "01310100",
                 "cep_vendedor": "20040020",
-                "categoria_produto": "eletronicos",
-                "peso_produto_kg": 2.5,
+                "categoria_produto": "perfumaria",
+                "peso_produto_g": 500.0,
+                "preco_produto": 99.90,
                 "preco_frete": 15.00,
-                "peso_produto_volume_cm3": 5000.0
+                "volume_cm3": 8000.0,
+                "total_itens_pedido": 1,
+                "prazo_estimado_dias": 12,
+                "velocidade_lojista_dias": 1.5,
+                "historico_atraso_vendedor": 0.0,
+                "qtd_pedidos_anteriores_vendedor": 100,
+                "data_aprovacao": "2018-11-23T10:00:00"
             }
         }
-
 
 class PredictionOutput(BaseModel):
-    """
-    Resposta da predição de atraso
-    """
-    probabilidade_atraso: float = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Probabilidade de atraso em porcentagem (0-100%)"
-    )
-    classe_predicao: str = Field(
-        ...,
-        description="Classificação: 'No Prazo' ou 'Atrasado'"
-    )
-    confianca: float = Field(
-        ...,
-        ge=0,
-        le=100,
-        description="Confiança da predição em porcentagem (0-100%)"
-    )
-    features_utilizadas: Dict[str, Any] = Field(
-        ...,
-        description="Features processadas e utilizadas na predição"
-    )
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "probabilidade_atraso": 23.45,
-                "classe_predicao": "No Prazo",
-                "confianca": 76.55,
-                "features_utilizadas": {
-                    "distancia_km": 450.5,
-                    "categoria_encoded": 3,
-                    "peso_kg": 2.5,
-                    "preco_frete": 15.00
-                }
-            }
-        }
-
+    """Resposta interativa de ML"""
+    probabilidade_atraso: float = Field(..., ge=0, le=100)
+    classe_predicao: str = Field(..., description="'No Prazo' ou 'Atrasado'")
+    confianca: float = Field(..., ge=0, le=100)
+    limiar_corte: float = Field(..., description="Threshold dinâmico usado")
+    features_utilizadas: Dict[str, Any]
 
 class HealthResponse(BaseModel):
-    """
-    Resposta do endpoint de health check
-    """
-    status: str = Field(..., description="Status da aplicação")
-    model_loaded: bool = Field(..., description="Se o modelo ML está carregado")
-    data_loaded: bool = Field(..., description="Se os dados estão carregados")
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "status": "healthy",
-                "model_loaded": True,
-                "data_loaded": True
-            }
-        }
-
+    status: str
+    model_loaded: bool
+    data_loaded: bool
 
 class FeaturesResponse(BaseModel):
-    """
-    Lista de features aceitas pela API
-    """
-    features: list[str] = Field(..., description="Lista de features de entrada")
-    description: str = Field(..., description="Descrição das features")
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "features": [
-                    "cep_cliente",
-                    "cep_vendedor",
-                    "categoria_produto",
-                    "peso_produto_kg",
-                    "preco_frete",
-                    "peso_produto_volume_cm3"
-                ],
-                "description": "Features necessárias para predição de atraso"
-            }
-        }
+    features: list[str]
+    description: str

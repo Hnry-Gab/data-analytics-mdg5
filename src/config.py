@@ -10,12 +10,13 @@ load_dotenv()
 
 # Diretórios base
 BASE_DIR = Path(__file__).resolve().parent.parent
-SRC_DIR = BASE_DIR / "src"
-STATIC_DIR = SRC_DIR / "static"
+# O Frontend real da aplicação está na raiz do projeto (frontend/) e não em src/static
+STATIC_DIR = BASE_DIR / "frontend"
 
 # Configurações do modelo
-MODEL_PATH = os.getenv("MODEL_PATH", str(BASE_DIR / "models" / "xgboost_model.pkl"))
-CSV_PATH = os.getenv("CSV_PATH", str(BASE_DIR / "data" / "olist_processed.csv"))
+MODEL_PATH = os.getenv("MODEL_PATH", str(BASE_DIR / "models" / "v5" / "catboost_atraso_v5.cbm"))
+MODEL_CONFIG_PATH = os.getenv("MODEL_CONFIG_PATH", str(BASE_DIR / "models" / "v5" / "model_config.json"))
+CSV_PATH = os.getenv("CSV_PATH", str(BASE_DIR / "dataset" / "processed" / "olist_processed.csv"))
 
 # Configurações da aplicação
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")

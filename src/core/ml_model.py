@@ -1,106 +1,102 @@
 """
-Carregamento e gerenciamento do modelo XGBoost
+Carregamento e gerenciamento do modelo CatBoost V5
 """
-import joblib
-import numpy as np
+import json
 from pathlib import Path
-from typing import Optional
-from src.config import MODEL_PATH
+from typing import Optional, Dict, Any
+from catboost import CatBoostClassifier
+import numpy as np
+import pandas as pd
+
+from src.config import MODEL_PATH, MODEL_CONFIG_PATH
 from src.utils.logger import get_logger
 from src.utils.exceptions import ModelNotLoadedException, PredictionException
 
 logger = get_logger(__name__)
 
-
 class MLModelLoader:
     """
-    Singleton para carregar e cachear o modelo XGBoost em memória
+    Singleton para carregar e cachear o modelo CatBoost em memória
     """
     _instance: Optional['MLModelLoader'] = None
-    _model: Optional[any] = None
+    _model: Optional[CatBoostClassifier] = None
+    _config: Optional[Dict[str, Any]] = None
 
     def __new__(cls):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def load_model(self, model_path: Optional[str] = None) -> any:
+    def load_model(self, model_path: Optional[str] = None, config_path: Optional[str] = None) -> CatBoostClassifier:
         """
-        Carrega o modelo .pkl do disco (apenas na primeira vez)
-
-        Args:
-            model_path: Caminho para o arquivo .pkl do modelo (opcional)
-
-        Returns:
-            Modelo XGBoost carregado
-
-        Raises:
-            FileNotFoundError: Se o arquivo do modelo não existir
-            ModelNotLoadedException: Se o modelo não puder ser carregado
+        Carrega o modelo nativo abstrato .cbm e suas métricas otimizadas do JSON
         """
-        if self._model is not None:
-            logger.info("Modelo já carregado em memória")
+        if self._model is not None and self._config is not None:
+            logger.info("Modelo CatBoost e Configuração já carregados em memória")
             return self._model
 
         path = model_path or MODEL_PATH
         model_file = Path(path)
+        conf_path = config_path or MODEL_CONFIG_PATH
+        conf_file = Path(conf_path)
 
-        if not model_file.exists():
-            logger.error(f"Modelo não encontrado em: {model_file}")
+        if not model_file.exists() or not conf_file.exists():
             raise FileNotFoundError(
-                f"Modelo não encontrado: {model_file}. "
-                f"Por favor, treine o modelo e salve em {MODEL_PATH}"
+                f"Archivos do Modelo v5 não encontrados: {model_file} ou {conf_file}. "
+                f"Treine e garanta exportação de .cbm e .json na pasta v5."
             )
 
         try:
-            logger.info(f"Carregando modelo de: {model_file}")
-            self._model = joblib.load(model_file)
-            logger.info("Modelo carregado com sucesso")
+            # 1. Carrega hiperparametros e threshold
+            logger.info(f"Carregando JSON de configurações em: {conf_file}")
+            with open(conf_file, 'r', encoding='utf-8') as f:
+                self._config = json.load(f)
+
+            # 2. Carrega motor em C++ Nativo (muito mais leve/rápido que pickle)
+            logger.info(f"Carregando modelo executável em: {model_file}")
+            self._model = CatBoostClassifier()
+            self._model.load_model(str(model_file))
+
+            logger.info(f"✓ CatBoost (treinado c/ threshold de {self._config.get('threshold', 0.5):.2f}) e {self._config.get('n_features')} features ativado!")
             return self._model
+
         except Exception as e:
-            logger.error(f"Erro ao carregar modelo: {str(e)}")
+            logger.error(f"Erro ao inicializar CatBoost v5: {str(e)}")
             raise ModelNotLoadedException(f"Erro ao carregar modelo: {str(e)}")
 
-    def predict_proba(self, features_array: np.ndarray) -> float:
+    def predict_proba(self, features_df: pd.DataFrame) -> tuple[float, float, str]:
         """
-        Realiza predição e retorna probabilidade de atraso
-
-        Args:
-            features_array: Array numpy com as features processadas
-
-        Returns:
-            Probabilidade da classe 1 (atraso) entre 0 e 1
-
-        Raises:
-            ModelNotLoadedException: Se o modelo não estiver carregado
-            PredictionException: Se houver erro na predição
+        Prediz risco de atraso operando no limiar dinâmico achado no grid search.
+        
+        Retorna:
+            Probabilidade (0 a 1)
+            Confiança Matemática
+            Classe (Atrasado, No Prazo)
         """
-        if self._model is None:
-            logger.error("Tentativa de predição sem modelo carregado")
-            raise ModelNotLoadedException(
-                "Modelo não carregado. Execute load_model() primeiro"
-            )
+        if self._model is None or self._config is None:
+            raise ModelNotLoadedException("Modelo não inicializado executado no endpoint.")
 
         try:
-            # Predição de probabilidades
-            proba = self._model.predict_proba(features_array)
-            # Retorna probabilidade da classe positiva (atraso)
-            prob_atraso = proba[0][1]
-            logger.debug(f"Probabilidade de atraso: {prob_atraso:.4f}")
-            return float(prob_atraso)
+            # Extrair o ponto de virada exato mapeado pelo cientista de dados
+            thresh = self._config.get('threshold', 0.5)
+            
+            # Predict Proba entrega array tipo [Prob_Classe0, Prob_Classe1]
+            probas = self._model.predict_proba(features_df)
+            prob_atraso = float(probas[0][1])
+            
+            classe = "Atrasado" if prob_atraso >= thresh else "No Prazo"
+            confianca_bruta = prob_atraso if prob_atraso >= thresh else (1.0 - prob_atraso)
+            
+            logger.debug(f">> Ticker ML: Prob={prob_atraso:.2f} | T={thresh:.2f} => {classe.upper()}")
+            
+            return prob_atraso, float(confianca_bruta), classe
+
         except Exception as e:
-            logger.error(f"Erro ao realizar predição: {str(e)}")
-            raise PredictionException(f"Erro ao realizar predição: {str(e)}")
+            logger.error(f"Engine de Previsão CatBoost Crashou: {str(e)}")
+            raise PredictionException(f"Erro crasso na predição MLEngine: {str(e)}")
 
     def is_loaded(self) -> bool:
-        """
-        Verifica se o modelo está carregado
+        return self._model is not None and self._config is not None
 
-        Returns:
-            True se o modelo está carregado, False caso contrário
-        """
-        return self._model is not None
-
-
-# Singleton global
+# Singleton global do Motor V5
 ml_model = MLModelLoader()
