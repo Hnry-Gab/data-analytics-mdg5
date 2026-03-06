@@ -177,6 +177,130 @@ async def get_dashboard_stats(state: str = None, year: int = None):
     }
 
 @router.get(
+    "/insights",
+    status_code=status.HTTP_200_OK,
+    summary="Obter dados reais para a aba de Insights baseados na EDA"
+)
+async def get_insights_data():
+    if not data_loader.is_loaded() or data_loader._data is None:
+        return {"error": "Dataset não carregado."}
+        
+    df = data_loader._data.copy()
+    
+    # 1. Interstate Routes (Donut)
+    df_valid = df.dropna(subset=['seller_state', 'customer_state', 'delivery_delayed']).copy()
+    df_valid['is_interstate'] = df_valid['seller_state'] != df_valid['customer_state']
+    
+    inter_total = df_valid['is_interstate'].sum()
+    intra_total = (~df_valid['is_interstate']).sum()
+    
+    inter_delayed = df_valid[df_valid['is_interstate']]['delivery_delayed'].sum()
+    intra_delayed = df_valid[~df_valid['is_interstate']]['delivery_delayed'].sum()
+    
+    inter_ontime = inter_total - inter_delayed
+    intra_ontime = intra_total - intra_delayed
+    
+    inter_rate = (inter_delayed / inter_total * 100) if inter_total > 0 else 0
+    intra_rate = (intra_delayed / intra_total * 100) if intra_total > 0 else 0
+    
+    donut_data = {
+        "inter_rate": round(inter_rate, 1),
+        "intra_rate": round(intra_rate, 1),
+        "inter_delayed": int(inter_delayed),
+        "inter_ontime": int(inter_ontime),
+        "intra_delayed": int(intra_delayed),
+        "intra_ontime": int(intra_ontime)
+    }
+    
+    # 2. Critical Categories (Treemap)
+    if 'product_category_name' in df.columns:
+        cat_stats = df.groupby('product_category_name').agg(
+            total=('order_id', 'count'),
+            delayed=('delivery_delayed', 'sum')
+        ).reset_index()
+        cat_stats = cat_stats[cat_stats['total'] >= 100]
+        cat_stats['delay_rate'] = (cat_stats['delayed'] / cat_stats['total']) * 100
+        cat_stats = cat_stats.sort_values('delay_rate', ascending=False).head(12)
+        
+        treemap_data = {
+            "categories": cat_stats['product_category_name'].tolist(),
+            "totals": int_to_list(cat_stats['total']),
+            "delay_rates": [round(x, 1) for x in cat_stats['delay_rate'].tolist()]
+        }
+    else:
+        treemap_data = {"categories": [], "totals": [], "delay_rates": []}
+        
+    # 3. Seller Bottleneck (Violin)
+    if 'velocidade_lojista_dias' in df.columns:
+        df_violin = df[['velocidade_lojista_dias', 'delivery_delayed']].dropna()
+        df_ontime = df_violin[df_violin['delivery_delayed'] == 0]['velocidade_lojista_dias']
+        df_delayed = df_violin[df_violin['delivery_delayed'] == 1]['velocidade_lojista_dias']
+        
+        df_ontime = df_ontime[df_ontime <= 30]
+        df_delayed = df_delayed[df_delayed <= 30]
+        
+        violin_data = {
+            "on_time": df_ontime.sample(min(1000, len(df_ontime)), random_state=42).tolist() if len(df_ontime) > 0 else [],
+            "delayed": df_delayed.sample(min(1000, len(df_delayed)), random_state=42).tolist() if len(df_delayed) > 0 else []
+        }
+    else:
+        violin_data = {"on_time": [], "delayed": []}
+        
+    # 4. Freight Economics (Scatter)
+    if 'price' in df.columns and 'freight_value' in df.columns:
+        df_scatter = df[['price', 'freight_value', 'delivery_delayed']].dropna().copy()
+        df_scatter = df_scatter[(df_scatter['price'] < 3000) & (df_scatter['freight_value'] < 300)]
+        df_scatter['freight_ratio'] = df_scatter['freight_value'] / df_scatter['price']
+        import numpy as np
+        df_scatter['freight_ratio'] = df_scatter['freight_ratio'].replace([np.inf, -np.inf], 0)
+        df_scatter = df_scatter[df_scatter['freight_ratio'] <= 2.0]
+        
+        df_scatter_s = df_scatter.sample(min(1500, len(df_scatter)), random_state=42)
+        
+        scatter_data = {
+            "on_time_x": df_scatter_s[df_scatter_s['delivery_delayed'] == 0]['price'].tolist(),
+            "on_time_y": df_scatter_s[df_scatter_s['delivery_delayed'] == 0]['freight_ratio'].round(2).tolist(),
+            "delayed_x": df_scatter_s[df_scatter_s['delivery_delayed'] == 1]['price'].tolist(),
+            "delayed_y": df_scatter_s[df_scatter_s['delivery_delayed'] == 1]['freight_ratio'].round(2).tolist()
+        }
+    else:
+        scatter_data = {"on_time_x": [], "on_time_y": [], "delayed_x": [], "delayed_y": []}
+        
+    # 5. Macro-Regiões (Heatmap)
+    heatmap_data = {"x": [], "y": [], "z": []}
+    if 'seller_regiao' in df.columns and 'customer_regiao' in df.columns:
+        regioes = ['Norte', 'Nordeste', 'Centro-Oeste', 'Sudeste', 'Sul']
+        heatmap_data['x'] = regioes # Destino
+        heatmap_data['y'] = regioes # Origem
+        
+        z_matrix = []
+        for origin in regioes:
+            row = []
+            for dest in regioes:
+                mask = (df['seller_regiao'] == origin) & (df['customer_regiao'] == dest)
+                subset = df[mask]
+                if len(subset) >= 50:
+                    rate = subset['delivery_delayed'].mean() * 100
+                    row.append(round(rate, 1))
+                else:
+                    row.append(None)
+            z_matrix.append(row)
+            
+        heatmap_data['z'] = z_matrix
+
+    return {
+        "donut": donut_data,
+        "treemap": treemap_data,
+        "violin": violin_data,
+        "scatter": scatter_data,
+        "heatmap": heatmap_data
+    }
+
+def int_to_list(series):
+    return [int(x) for x in series.tolist()]
+
+
+@router.get(
     "/health",
     response_model=HealthResponse,
     status_code=status.HTTP_200_OK,

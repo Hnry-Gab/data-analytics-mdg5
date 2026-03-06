@@ -84,6 +84,11 @@ const I18N = {
         "ins.labelFreight":   "FREIGHT",
         "ins.titleFreight":   "Freight Dynamics",
         "ins.freightText":    "Freight ratio vs price — orders above the 0.5 line carry proportionally higher shipping costs.",
+        "ins.labelMacro":     "MACRO-REGION",
+        "ins.titleMacro":     "Macro-Region Routes",
+        "ins.macroText":      "Detailed heatmap of delay rates between origin and destination regions. Highlights logistical bottlenecks such as Southeast to North/Northeast routes.",
+        "heatmap.origin":     "Origin",
+        "heatmap.dest":       "Dest",
         // Donut
         "donut.onTimeInter":  "On time (Inter)",
         "donut.delayedInter": "Delayed (Inter)",
@@ -102,7 +107,7 @@ const I18N = {
         "fscatter.delayed":   "Delayed",
         // Insight dynamic texts
         "ins.interText":      'Orders crossing state borders show a <strong>{interRate}%</strong> delay rate compared to {intraRate}% for intrastate. The distance and complexity of multi-state logistics drives this gap.',
-        "ins.catText":        'The top offender — <strong>{cat}</strong> — reaches {pct}% delay rate across {total} orders. Categories sized by volume, colored by delay severity. Heavier and bulkier products dominate the high-risk zone.',
+        "ins.catText":        'The top offender — <strong>{cat}</strong> — reaches {pct}% delay rate across {total} orders. The chart sizes categories by volume and colors them by delay severity.',
         // Predictor hero
         "pred.heroLabel":     "PREDICTOR",
         "pred.heroLine1":     "Simulate before",
@@ -164,7 +169,7 @@ const I18N = {
         "chartHelp.ask":      "Ask about this chart",
     },
     pt: {
-        "title":              "Olist — Inteligência Logística",
+        "title":              "Olist - Inteligência Logística",
         "nav.subtitle":       "Inteligência Logística",
         "nav.dashboard":      "Dashboard",
         "nav.insights":       "Insights",
@@ -212,6 +217,11 @@ const I18N = {
         "ins.labelFreight":   "FRETE",
         "ins.titleFreight":   "Dinâmicas de Frete",
         "ins.freightText":    "Razão frete vs preço — pedidos acima da linha 0.5 possuem custos de envio proporcionalmente maiores.",
+        "ins.labelMacro":     "MACRO-REGIÃO",
+        "ins.titleMacro":     "Rotas Macro-Regionais",
+        "ins.macroText":      "Heatmap detalhado das taxas de atraso entre regiões de origem e destino. Destaca gargalos logísticos como rotas do Sudeste para o Norte/Nordeste.",
+        "heatmap.origin":     "Origem",
+        "heatmap.dest":       "Destino",
         "donut.onTimeInter":  "No prazo (Inter)",
         "donut.delayedInter": "Atrasado (Inter)",
         "donut.onTimeIntra":  "No prazo (Intra)",
@@ -224,8 +234,8 @@ const I18N = {
         "fscatter.freightRatio":"Razão de Frete",
         "fscatter.onTime":    "No prazo",
         "fscatter.delayed":   "Atrasado",
-        "ins.interText":      'Pedidos que cruzam fronteiras estaduais apresentam uma taxa de atraso de <strong>{interRate}%</strong> comparada a {intraRate}% para interestaduais. A distância e complexidade da logística multiestadual impulsionam essa diferença.',
-        "ins.catText":        'O maior infrator — <strong>{cat}</strong> — atinge {pct}% de atraso em {total} pedidos. Categorias dimensionadas por volume, coloridas por severidade de atraso. Produtos mais pesados e volumosos dominam a zona de alto risco.',
+        "ins.interText":      'Pedidos que cruzam fronteiras estaduais apresentam uma taxa de atraso de <strong>{interRate}%</strong> comparada a {intraRate}% para intraestaduais. A distância e complexidade da logística multiestadual impulsionam essa diferença.',
+        "ins.catText":        'O maior infrator — <strong>{cat}</strong> — atinge {pct}% de atraso em {total} pedidos. No gráfico, o tamanho do bloco representa o volume de vendas e a cor a severidade do atraso.',
         "pred.heroLabel":     "PREDITOR",
         "pred.heroLine1":     "Simule antes",
         "pred.heroLine2":     "de enviar.",
@@ -865,28 +875,46 @@ function renderScatter() {
 /* ═══════════════════════════════════════════════════════════════════════ */
 
 let insightsRendered = false;
+let insightsData = null;
+
 function initInsights() {
     // Defer rendering — charts need visible container for correct sizing
 }
 
-function renderInsightsIfNeeded() {
+async function renderInsightsIfNeeded() {
     if (insightsRendered) return;
+    
+    document.getElementById("ins-inter-rate").textContent = "...";
+    
+    try {
+        const res = await fetch("/api/insights");
+        if (res.ok) {
+            insightsData = await res.json();
+        } else {
+            console.error("Failed to fetch insights data");
+        }
+    } catch (e) {
+        console.error("API error", e);
+    }
+    
     insightsRendered = true;
-    renderDonut();
-    renderTreemap();
-    renderViolin();
-    renderFreightScatter();
+    renderDonut(insightsData?.donut);
+    renderTreemap(insightsData?.treemap);
+    renderViolin(insightsData?.violin);
+    renderFreightScatter(insightsData?.scatter);
+    renderHeatmap(insightsData?.heatmap);
 }
 
-function renderDonut() {
-    const interRate = 9.4, intraRate = 5.1;
+function renderDonut(data) {
+    if (!data) return;
+    const interRate = data.inter_rate, intraRate = data.intra_rate;
     document.getElementById("ins-inter-rate").textContent = interRate.toFixed(1) + "%";
     document.getElementById("ins-inter-text").innerHTML =
         t("ins.interText", { interRate: interRate.toFixed(1), intraRate: intraRate.toFixed(1) });
 
     Plotly.newPlot("ins-donut-chart", [{
         labels: [t("donut.onTimeInter"), t("donut.delayedInter"), t("donut.onTimeIntra"), t("donut.delayedIntra")],
-        values: [38200, 3960, 51900, 2780],
+        values: [data.inter_ontime, data.inter_delayed, data.intra_ontime, data.intra_delayed],
         marker: { colors: [FAINT, ALERT, GHOST, "#440000"] },
         hole: 0.7, type: "pie",
         textfont: { family: "IBM Plex Mono", color: MUTED, size: pH(11) },
@@ -900,39 +928,40 @@ function renderDonut() {
     addLegendHint("ins-donut-chart");
 }
 
-function renderTreemap() {
-    const cats = ["bed_bath_table","health_beauty","sports_leisure","furniture_decor","computers","housewares","watches_gifts","garden_tools","auto","cool_stuff","perfumery","toys"];
-    const tots = [3200,2800,2400,2100,1900,1800,1600,1400,1200,1100,950,900];
-    const pcts = [12.1,10.8,9.5,8.9,8.4,7.8,7.2,6.9,6.5,6.2,5.8,5.1];
+function renderTreemap(data) {
+    if (!data || !data.categories || data.categories.length === 0) return;
+    const cats = data.categories.map(c => c.split("_").join(" "));
+    const tots = data.totals;
+    const pcts = data.delay_rates;
 
     Plotly.newPlot("ins-treemap-chart", [{
-        type: "treemap", labels: cats, parents: cats.map(() => ""), values: tots,
+        type: "treemap", labels: cats, parents: cats.map(() => ""), values: pcts,
         marker: {
             colors: pcts,
+            cmin: 5,
+            cmax: Math.max(...pcts) + 1,
             colorscale: [[0, "#0d0d0d"], [0.3, "#0a0a2e"], [0.6, "#00003a"], [1, ALERT]],
             colorbar: { bgcolor: "rgba(0,0,0,0)", borderwidth: 0, tickfont: { color: DIM }, title: { text: t("treemap.delayPct"), font: { color: DIM } } },
             cornerradius: 6,
         },
-        textfont: { family: "IBM Plex Mono", color: "#ECEBE9" },
-        textinfo: "label+percent parent",
-        hovertemplate: "%{label}<br>Orders: %{value:,}<br>Delay: %{color:.1f}%<extra></extra>",
+        text: pcts.map(p => p.toFixed(1) + "%"),
+        textfont: { family: "IBM Plex Mono", color: "#ECEBE9", size: pH(11) },
+        textinfo: "label+text",
+        hovertemplate: "%{label}<br>Orders: %{customdata:,}<br>Delay: %{color:.1f}%<extra></extra>",
+        customdata: tots
     }], { ...PLOTLY_BASE, height: pH(440), margin: { l: 0, r: 0, t: 0, b: 0 } }, PLOTLY_CFG);
 
     document.getElementById("ins-cat-text").innerHTML =
         t("ins.catText", { cat: cats[0], pct: pcts[0].toFixed(1), total: tots[0].toLocaleString() });
 }
 
-function renderViolin() {
-    const onT = [], del = [];
-    for (let i = 0; i < 500; i++) {
-        onT.push(Math.max(0, Math.min(15, gauss(2.5, 1.5))));
-        del.push(Math.max(0, Math.min(15, gauss(5.2, 2.8))));
-    }
-
+function renderViolin(data) {
+    if (!data || !data.on_time) return;
+    
     Plotly.newPlot("ins-violin-chart", [
-        { y: onT, name: t("violin.onTime"), type: "violin", box: { visible: true }, meanline: { visible: true },
+        { y: data.on_time, name: t("violin.onTime"), type: "violin", box: { visible: true }, meanline: { visible: true },
           fillcolor: FAINT, opacity: 0.8, line: { color: DIM }, marker: { color: DIM } },
-        { y: del, name: t("violin.delayed"), type: "violin", box: { visible: true }, meanline: { visible: true },
+        { y: data.delayed, name: t("violin.delayed"), type: "violin", box: { visible: true }, meanline: { visible: true },
           fillcolor: ALERT, opacity: 0.7, line: { color: ALERT }, marker: { color: ALERT } },
     ], {
         ...PLOTLY_BASE, height: pH(380), showlegend: true,
@@ -945,21 +974,14 @@ function renderViolin() {
     addLegendHint("ins-violin-chart");
 }
 
-function renderFreightScatter() {
-    const n = 600;
-    const okX = [], okY = [], dX = [], dY = [];
-    for (let i = 0; i < n; i++) {
-        const p = Math.random() * 800 + 10;
-        const r = Math.random() * 2;
-        if (Math.random() > 0.93) { dX.push(p); dY.push(r); }
-        else { okX.push(p); okY.push(r); }
-    }
+function renderFreightScatter(data) {
+    if (!data || !data.on_time_x) return;
 
     Plotly.newPlot("ins-freight-scatter", [
-        { x: okX, y: okY, mode: "markers", name: t("fscatter.onTime"),
+        { x: data.on_time_x, y: data.on_time_y, mode: "markers", name: t("fscatter.onTime"),
           marker: { size: 3, color: FAINT, opacity: 0.4 },
           hovertemplate: "R$%{x:.0f} | Ratio: %{y:.2f}<extra>" + t("fscatter.onTime") + "</extra>" },
-        { x: dX, y: dY, mode: "markers", name: t("fscatter.delayed"),
+        { x: data.delayed_x, y: data.delayed_y, mode: "markers", name: t("fscatter.delayed"),
           marker: { size: 5, color: ALERT, opacity: 0.6 },
           hovertemplate: "R$%{x:.0f} | Ratio: %{y:.2f}<extra>" + t("fscatter.delayed") + "</extra>" },
     ], {
@@ -967,9 +989,41 @@ function renderFreightScatter() {
         xaxis: ax({ gridcolor: FAINT, title: { text: t("fscatter.priceR"), font: { color: DIM } } }),
         yaxis: ax({ gridcolor: FAINT, title: { text: t("fscatter.freightRatio"), font: { color: DIM } } }),
         legend: { bgcolor: "rgba(0,0,0,0)", borderwidth: 0, font: { color: DIM } },
-        shapes: [{ type: "line", x0: 0, x1: 810, y0: 0.5, y1: 0.5, line: { color: DIM, width: 1, dash: "dot" } }],
+        shapes: [{ type: "line", x0: 0, x1: 2900, y0: 0.5, y1: 0.5, line: { color: DIM, width: 1, dash: "dot" } }],
     }, PLOTLY_CFG);
     addLegendHint("ins-freight-scatter");
+}
+
+function renderHeatmap(data) {
+    if (!data || !data.z) return;
+    
+    const rColorscale = [
+        [0, "rgba(0,0,0,0)"],
+        [0.2, "#2a0000"],
+        [0.5, "#800000"],
+        [0.8, "#cc0000"],
+        [1.0, ALERT]
+    ];
+    
+    // Reverse array structure for Plotly heatmap orientation matching standard reading
+    const zRev = [...data.z].reverse();
+    const yRev = [...data.y].reverse();
+    
+    Plotly.newPlot("ins-heatmap-chart", [{
+        z: zRev,
+        x: data.x,
+        y: yRev,
+        type: "heatmap",
+        colorscale: rColorscale,
+        text: zRev.map(row => row.map(val => val !== null ? val.toFixed(1) + "%" : "-")),
+        texttemplate: "%{text}",
+        hoverinfo: "x+y+text"
+    }], {
+        ...PLOTLY_BASE, height: pH(380), margin: { l: 80, r: 20, t: 10, b: 60 },
+        xaxis: ax({ gridcolor: "rgba(0,0,0,0)", title: { text: t("heatmap.dest"), font: { color: DIM } } }),
+        yaxis: ax({ gridcolor: "rgba(0,0,0,0)", title: { text: t("heatmap.origin"), font: { color: DIM } } }),
+    }, PLOTLY_CFG);
+    addLegendHint("ins-heatmap-chart");
 }
 
 /* ═══════════════════════════════════════════════════════════════════════ */

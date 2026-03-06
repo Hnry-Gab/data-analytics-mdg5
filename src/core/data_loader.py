@@ -33,10 +33,12 @@ class DataLoader:
         orders_file = base_dir / "olist_orders_dataset.csv"
         items_file = base_dir / "olist_order_items_dataset.csv"
         customers_file = base_dir / "olist_customers_dataset.csv"
+        products_file = base_dir / "olist_products_dataset.csv"
+        sellers_file = base_dir / "olist_sellers_dataset.csv"
 
         if not orders_file.exists() or not items_file.exists() or not customers_file.exists():
             logger.warning(
-                f"Tabelas essenciais (orders/items/customers) não encontradas em: {base_dir}. "
+                f"Tabelas essenciais não encontradas em: {base_dir}. "
                 f"Dashboard ficará com visual apenas estético."
             )
             return pd.DataFrame()
@@ -46,13 +48,21 @@ class DataLoader:
             df_orders = pd.read_csv(orders_file)
             df_items = pd.read_csv(items_file)
             df_customers = pd.read_csv(customers_file)
+            df_products = pd.read_csv(products_file) if products_file.exists() else pd.DataFrame()
+            df_sellers = pd.read_csv(sellers_file) if sellers_file.exists() else pd.DataFrame()
             
             # Merge para pegar Freight (itens) e State (clientes)
             df_merged = df_orders.merge(df_items, on="order_id", how="left")
             df_merged = df_merged.merge(df_customers, on="customer_id", how="left")
+            if not df_products.empty:
+                df_merged = df_merged.merge(df_products, on="product_id", how="left")
+            if not df_sellers.empty:
+                df_merged = df_merged.merge(df_sellers, on="seller_id", how="left")
             
             # Tratar datas
             df_merged['order_purchase_timestamp'] = pd.to_datetime(df_merged['order_purchase_timestamp'])
+            df_merged['order_approved_at'] = pd.to_datetime(df_merged['order_approved_at'])
+            df_merged['order_delivered_carrier_date'] = pd.to_datetime(df_merged['order_delivered_carrier_date'])
             df_merged['purchase_year'] = df_merged['order_purchase_timestamp'].dt.year
             
             # Feature "delivery_delayed" e Cálculo de Delta Dias
@@ -68,9 +78,28 @@ class DataLoader:
             else:
                 df_merged['delivery_delayed'] = 0
                 df_merged['delta_days'] = 0
+                
+            # Velocidade do Lojista
+            df_merged['velocidade_lojista_dias'] = (df_merged['order_delivered_carrier_date'] - df_merged['order_approved_at']).dt.days
+            df_merged['velocidade_lojista_dias'] = df_merged['velocidade_lojista_dias'].fillna(
+                df_merged['velocidade_lojista_dias'].median() if not df_merged['velocidade_lojista_dias'].isna().all() else 1.0
+            )
+            
+            # Macro-regiões
+            regioes_map = {
+                'AM': 'Norte', 'RR': 'Norte', 'AP': 'Norte', 'PA': 'Norte', 'TO': 'Norte', 'RO': 'Norte', 'AC': 'Norte',
+                'MA': 'Nordeste', 'PI': 'Nordeste', 'CE': 'Nordeste', 'RN': 'Nordeste', 'PE': 'Nordeste', 'PB': 'Nordeste', 'SE': 'Nordeste', 'AL': 'Nordeste', 'BA': 'Nordeste',
+                'MT': 'Centro-Oeste', 'MS': 'Centro-Oeste', 'GO': 'Centro-Oeste', 'DF': 'Centro-Oeste',
+                'SP': 'Sudeste', 'RJ': 'Sudeste', 'ES': 'Sudeste', 'MG': 'Sudeste',
+                'PR': 'Sul', 'RS': 'Sul', 'SC': 'Sul'
+            }
+            if 'customer_state' in df_merged.columns:
+                df_merged['customer_regiao'] = df_merged['customer_state'].map(regioes_map)
+            if 'seller_state' in df_merged.columns:
+                df_merged['seller_regiao'] = df_merged['seller_state'].map(regioes_map)
 
             self._data = df_merged
-            logger.info(f"Dados históricos carregados: {len(self._data)} linhas (Merged c/ Clientes)")
+            logger.info(f"Dados históricos carregados: {len(self._data)} linhas (Merged c/ Clientes, Produtos e Sellers)")
             return self._data
         except Exception as e:
             logger.error(f"Erro ao agregar csv brutos: {str(e)}")
