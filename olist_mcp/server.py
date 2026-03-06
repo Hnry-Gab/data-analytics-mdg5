@@ -8,6 +8,7 @@ from olist_mcp.tools import (
     documentation,
     geographic,
     ml_model,
+    query_filter,
     temporal,
 )
 
@@ -28,6 +29,7 @@ geographic.register(mcp)
 temporal.register(mcp)
 business_insights.register(mcp)
 ml_model.register(mcp)
+query_filter.register(mcp)
 
 if __name__ == "__main__":
     mcp.run()
