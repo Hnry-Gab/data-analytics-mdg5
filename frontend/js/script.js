@@ -12,8 +12,8 @@ const ALERT = "#FF0000";
 const WHITE = "#FFFFFF";
 const GHOST = "rgba(255,255,255,0.06)";
 const FAINT = "rgba(255,255,255,0.12)";
-const DIM   = "rgba(255,255,255,0.25)";
-const MUTED = "rgba(255,255,255,0.50)";
+const DIM   = "rgba(255,255,255,0.60)";
+const MUTED = "rgba(255,255,255,0.75)";
 const DAYS_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DAYS_PT = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
@@ -481,40 +481,83 @@ function initChartHelp() {
         // On small screens the left overlay is hidden via CSS; only open chat
         const showPreview = window.innerWidth > 768;
 
+        // Don't open chart-help if chat is expanded (would overlap)
+        const isExpanded = chatOverlay.classList.contains("chat-expanded");
+
         // Open chat overlay (right)
         chatOverlay.classList.remove("chat-hidden");
         chatFab.classList.add("chat-fab--hidden");
 
-        if (!showPreview) return;
+        if (!showPreview || isExpanded) return;
 
         helpBody.innerHTML = "";
         helpOverlay.classList.remove("chart-help-hidden");
 
-        const plotDiv = card.querySelector(".js-plotly-plot");
+        // Find the Plotly graph div. Plotly stores .data/.layout on the element
+        // passed to Plotly.newPlot() — the one with the id like #dash-scatter.
+        let plotDiv = null;
+        const candidates = card.querySelectorAll("[id]");
+        for (const el of candidates) {
+            if (el.data && el.layout) { plotDiv = el; break; }
+        }
+        if (!plotDiv) {
+            const jp = card.querySelector(".js-plotly-plot");
+            if (jp) plotDiv = jp.data ? jp : (jp.parentElement?.data ? jp.parentElement : null);
+        }
 
-        if (plotDiv) {
-            // Export at HALF dimensions → text takes 2x proportion of the image.
-            // When displayed at full overlay width, text appears ~2x bigger.
-            // scale:3 keeps pixel quality sharp.
-            Plotly.toImage(plotDiv, {
-                format: "png",
-                width: Math.round(plotDiv.offsetWidth * 0.75),
-                height: Math.round(plotDiv.offsetHeight * 0.75),
-                scale: 3,
-            }).then(url => {
+        if (plotDiv && plotDiv.data && plotDiv.layout) {
+            // Plotly needs a container with concrete pixel dimensions.
+            // Use requestAnimationFrame so the overlay is fully laid out first.
+            requestAnimationFrame(() => {
+                const bodyRect = helpBody.getBoundingClientRect();
+                const w = Math.round(bodyRect.width - 32);  // minus padding
+                const h = Math.round(bodyRect.height - 32);
+
+                if (w < 50 || h < 50) return;
+
+                const container = document.createElement("div");
+                container.style.width = w + "px";
+                container.style.height = h + "px";
                 helpBody.innerHTML = "";
-                const img = document.createElement("img");
-                img.src = url;
-                img.alt = helpTitle.textContent;
-                helpBody.appendChild(img);
+                helpBody.appendChild(container);
+
+                const clonedData = JSON.parse(JSON.stringify(plotDiv.data));
+                const clonedLayout = JSON.parse(JSON.stringify(plotDiv.layout));
+
+                clonedLayout.autosize = false;
+                clonedLayout.width = w;
+                clonedLayout.height = h;
+
+                const config = {
+                    responsive: true,
+                    displayModeBar: true,
+                    displaylogo: false,
+                    modeBarButtonsToRemove: ["lasso2d", "select2d"]
+                };
+
+                Plotly.newPlot(container, clonedData, clonedLayout, config);
             });
         } else {
-            const clone = card.cloneNode(true);
-            const cloneBtn = clone.querySelector(".chart-help-btn");
-            if (cloneBtn) cloneBtn.remove();
-            clone.style.position = "static";
-            clone.style.width = "100%";
-            helpBody.appendChild(clone);
+            // Fallback: static image from any Plotly element found
+            const jp = card.querySelector(".js-plotly-plot") ||
+                       card.querySelector("[id]");
+            const srcEl = jp && jp._fullLayout ? jp : (jp?.parentElement?._fullLayout ? jp.parentElement : null);
+            if (srcEl) {
+                Plotly.toImage(srcEl, {
+                    format: "png",
+                    width: srcEl.offsetWidth || 800,
+                    height: srcEl.offsetHeight || 500,
+                    scale: 2,
+                }).then(url => {
+                    helpBody.innerHTML = "";
+                    const img = document.createElement("img");
+                    img.src = url;
+                    img.alt = helpTitle.textContent;
+                    helpBody.appendChild(img);
+                });
+            } else {
+                helpBody.innerHTML = '<p style="color:var(--muted);font-family:var(--font-mono);font-size:0.7rem;text-align:center;">No chart preview available</p>';
+            }
         }
     }
 
@@ -744,6 +787,7 @@ function renderScatter() {
         yaxis: ax({ gridcolor: FAINT, title: null }),
         legend: { bgcolor: "rgba(0,0,0,0)", borderwidth: 0, font: { color: DIM } },
     }, PLOTLY_CFG);
+    addLegendHint("dash-scatter");
 }
 
 /* ═══════════════════════════════════════════════════════════════════════ */
@@ -783,6 +827,7 @@ function renderDonut() {
         margin: { l: 0, r: 0, t: 0, b: 0 },
         legend: { bgcolor: "rgba(0,0,0,0)", borderwidth: 0, font: { color: DIM, size: pH(10) } },
     }, PLOTLY_CFG);
+    addLegendHint("ins-donut-chart");
 }
 
 function renderTreemap() {
@@ -827,6 +872,7 @@ function renderViolin() {
         legend: { bgcolor: "rgba(0,0,0,0)", borderwidth: 0, font: { color: DIM } },
         violingap: 0.3, violinmode: "group",
     }, PLOTLY_CFG);
+    addLegendHint("ins-violin-chart");
 }
 
 function renderFreightScatter() {
@@ -853,6 +899,7 @@ function renderFreightScatter() {
         legend: { bgcolor: "rgba(0,0,0,0)", borderwidth: 0, font: { color: DIM } },
         shapes: [{ type: "line", x0: 0, x1: 810, y0: 0.5, y1: 0.5, line: { color: DIM, width: 1, dash: "dot" } }],
     }, PLOTLY_CFG);
+    addLegendHint("ins-freight-scatter");
 }
 
 /* ═══════════════════════════════════════════════════════════════════════ */
@@ -896,84 +943,96 @@ function runPrediction() {
     else                  { color = LIME;  label = t("pred.lowRisk"); }
 
     const resultDiv = document.getElementById("pred-result");
+
     resultDiv.innerHTML = `
         <div class="risk-result">
-            <div class="glass-card chart-card" style="padding:32px">
+            <div class="glass-card chart-card">
                 <div id="pred-gauge"></div>
             </div>
-            <div class="glass-card chart-card" style="padding:32px">
+            <div class="glass-card chart-card">
                 <div class="chart-label">${t("pred.featureProfile")}</div>
                 <div id="pred-radar"></div>
-            </div>
-            <div class="glass-card" style="padding:32px">
-                <div class="chart-label">${t("pred.recActions")}</div>
-                <div id="pred-recommendations" style="margin-top:16px"></div>
-            </div>
-            <div class="fvec">
-                <pre>${JSON.stringify(features, null, 2)}</pre>
             </div>
         </div>
     `;
 
-    // Gauge
-    Plotly.newPlot("pred-gauge", [{
-        type: "indicator", mode: "gauge+number", value: prob * 100,
-        number: { suffix: "%", font: { family: "Space Grotesk", size: pH(56), color: color } },
-        title: { text: label, font: { family: "IBM Plex Mono", size: pH(12), color: color } },
-        gauge: {
-            axis: { range: [0, 100], tickfont: { color: DIM, size: pH(10) }, tickcolor: FAINT, dtick: 20 },
-            bar: { color: color, thickness: 0.75 },
-            bgcolor: "#111111", borderwidth: 0,
-            steps: [
-                { range: [0, 20], color: "#0d0d0d" },
-                { range: [20, 50], color: "#161616" },
-                { range: [50, 100], color: "#1a1118" },
-            ],
-            threshold: { line: { color: WHITE, width: 2 }, thickness: 0.85, value: prob * 100 },
-        },
-    }], { ...PLOTLY_BASE, height: pH(280), margin: { l: 30, r: 30, t: 50, b: 10 } }, PLOTLY_CFG);
+    // Defer Plotly rendering to next frame so CSS grid stretch is applied
+    // and we can measure the real available height in each card.
+    requestAnimationFrame(() => {
+        const gaugeCard = document.getElementById("pred-gauge").parentElement;
+        const radarCard = document.getElementById("pred-radar").parentElement;
 
-    // Radar
-    const cats = [t("radar.weight"), t("radar.price"), t("radar.freight"), t("radar.volume"), t("radar.fRatio"), t("radar.sellerSpd"), t("radar.interstate")];
-    const maxV = [30000, 2000, 200, 100000, 2, 15, 1];
-    const raw  = [weight, price, freight, volume, ratio, sellerDays, interstate];
-    const norm = raw.map((v, i) => Math.min(v / maxV[i], 1.0));
-    norm.push(norm[0]);
-    const catsC = [...cats, cats[0]];
+        const pad = 48; // 24px top + 24px bottom
+        const gaugeH = Math.max(140, Math.round(gaugeCard.getBoundingClientRect().height - pad));
+        const radarLabelH = radarCard.querySelector(".chart-label")?.offsetHeight || 0;
+        const radarH = Math.max(140, Math.round(radarCard.getBoundingClientRect().height - pad - radarLabelH));
 
-    Plotly.newPlot("pred-radar", [{
-        type: "scatterpolar", r: norm, theta: catsC, fill: "toself",
-        fillcolor: "rgba(0, 0, 255, 0.08)",
-        line: { color: LIME, width: 2 },
-        marker: { size: 5, color: CYAN },
-        hovertemplate: "%{theta}: %{r:.2f}<extra></extra>",
-    }], {
-        ...PLOTLY_BASE, height: pH(300), margin: { l: 60, r: 60, t: 20, b: 20 },
-        polar: {
-            bgcolor: "rgba(0,0,0,0)",
-            angularaxis: { gridcolor: FAINT, linecolor: FAINT },
-            radialaxis: { gridcolor: FAINT, linecolor: FAINT, range: [0, 1], showticklabels: false },
-        },
-        showlegend: false,
-    }, PLOTLY_CFG);
+        // Gauge
+        Plotly.newPlot("pred-gauge", [{
+            type: "indicator", mode: "gauge+number", value: prob * 100,
+            number: { suffix: "%", font: { family: "Space Grotesk", size: pH(56), color: color } },
+            title: { text: label, font: { family: "IBM Plex Mono", size: pH(12), color: color } },
+            gauge: {
+                axis: { range: [0, 100], tickfont: { color: DIM, size: pH(10) }, tickcolor: FAINT, dtick: 20 },
+                bar: { color: color, thickness: 0.75 },
+                bgcolor: "#111111", borderwidth: 0,
+                steps: [
+                    { range: [0, 20], color: "#0d0d0d" },
+                    { range: [20, 50], color: "#161616" },
+                    { range: [50, 100], color: "#1a1118" },
+                ],
+                threshold: { line: { color: WHITE, width: 2 }, thickness: 0.85, value: prob * 100 },
+            },
+        }], { ...PLOTLY_BASE, height: gaugeH, margin: { l: 30, r: 30, t: 50, b: 10 } }, PLOTLY_CFG);
 
-    // Recommendations
-    const recs = [];
-    if (interstate)     recs.push(t("pred.recInterstate"));
-    if (sellerDays > 5) recs.push(t("pred.recSeller", { days: sellerDays }));
-    if (ratio > 0.5)    recs.push(t("pred.recFreight"));
+        // Radar
+        const cats = [t("radar.weight"), t("radar.price"), t("radar.freight"), t("radar.volume"), t("radar.fRatio"), t("radar.sellerSpd"), t("radar.interstate")];
+        const maxV = [30000, 2000, 200, 100000, 2, 15, 1];
+        const raw  = [weight, price, freight, volume, ratio, sellerDays, interstate];
+        const norm = raw.map((v, i) => Math.min(v / maxV[i], 1.0));
+        norm.push(norm[0]);
+        const catsC = [...cats, cats[0]];
 
-    const recsDiv = document.getElementById("pred-recommendations");
-    if (recs.length === 0) {
-        recsDiv.innerHTML = `<p style="color:${DIM};font-size:0.8rem;font-family:IBM Plex Mono,monospace">${t("pred.recOk")}</p>`;
-    } else {
-        recsDiv.innerHTML = recs.map((r, i) =>
-            `<div class="rec-card${i === 0 ? ' primary' : ''}"><p>${r}</p></div>`
-        ).join("");
-    }
+        Plotly.newPlot("pred-radar", [{
+            type: "scatterpolar", r: norm, theta: catsC, fill: "toself",
+            fillcolor: "rgba(0, 0, 255, 0.08)",
+            line: { color: LIME, width: 2 },
+            marker: { size: 5, color: CYAN },
+            hovertemplate: "%{theta}: %{r:.2f}<extra></extra>",
+        }], {
+            ...PLOTLY_BASE, height: radarH, margin: { l: 60, r: 60, t: 20, b: 20 },
+            polar: {
+                bgcolor: "rgba(0,0,0,0)",
+                angularaxis: { gridcolor: FAINT, linecolor: FAINT },
+                radialaxis: { gridcolor: FAINT, linecolor: FAINT, range: [0, 1], showticklabels: false },
+            },
+            showlegend: false,
+        }, PLOTLY_CFG);
 
-    // Inject ? buttons into dynamically created predictor chart cards
-    if (window.reinjectChartHelp) window.reinjectChartHelp();
+        // Inject ? buttons into dynamically created predictor chart cards
+        if (window.reinjectChartHelp) window.reinjectChartHelp();
+
+        // Recommendations (full-width below both columns)
+        const recs = [];
+        if (interstate)     recs.push(t("pred.recInterstate"));
+        if (sellerDays > 5) recs.push(t("pred.recSeller", { days: sellerDays }));
+        if (ratio > 0.5)    recs.push(t("pred.recFreight"));
+
+        const recsDiv = document.getElementById("pred-recommendations");
+        if (recs.length === 0) {
+            recsDiv.style.display = "none";
+        } else {
+            recsDiv.style.display = "";
+            recsDiv.innerHTML = `
+                <div class="glass-card" style="padding:24px">
+                    <div class="chart-label">${t("pred.recActions")}</div>
+                    <div style="margin-top:12px">
+                        ${recs.map((r, i) => `<div class="rec-card${i === 0 ? ' primary' : ''}"><p>${r}</p></div>`).join("")}
+                    </div>
+                </div>
+            `;
+        }
+    });
 }
 
 /* ── Utilities ───────────────────────────────────────────────────────── */
@@ -983,10 +1042,130 @@ function gauss(mean, std) {
     return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v) * std + mean;
 }
 
+/** Add a "click legend to filter" hint below a Plotly chart */
+function addLegendHint(containerId) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const parent = el.closest(".chart-card") || el.parentElement;
+    if (parent && !parent.querySelector(".legend-filter-hint")) {
+        const hint = document.createElement("div");
+        hint.className = "legend-filter-hint";
+        hint.textContent = CURRENT_LANG === "pt" ? "Clique na legenda para filtrar" : "Click legend to filter";
+        parent.appendChild(hint);
+    }
+}
+
 /* ── FUI Real-Time Clock ──────────────────────────────────────────────── */
 setInterval(() => {
     const el = document.getElementById("fui-clock");
     if (el) el.textContent = new Date().toISOString().slice(11, 19) + " UTC";
 }, 1000);
+
+/* ── Custom Dropdown (CDD) ────────────────────────────────────────────── */
+/* Wraps every <select> into a styled dropdown panel while keeping the
+   native element in sync so `.value` and `change` events still work.   */
+
+function initCustomDropdowns() {
+    document.querySelectorAll("select:not(.cdd-hidden)").forEach(sel => {
+        /* 1. Build wrapper */
+        const wrap = document.createElement("div");
+        wrap.className = "cdd";
+
+        /* 2. Trigger button */
+        const trigger = document.createElement("button");
+        trigger.type = "button";
+        trigger.className = "cdd-trigger";
+        trigger.setAttribute("aria-haspopup", "listbox");
+        trigger.setAttribute("aria-expanded", "false");
+        trigger.innerHTML = `
+            <span class="cdd-label"></span>
+            <svg class="cdd-chevron" width="10" height="6" viewBox="0 0 10 6" fill="none">
+                <path d="M0 0l5 6 5-6z" fill="currentColor"/>
+            </svg>`;
+        const label = trigger.querySelector(".cdd-label");
+
+        /* 3. Option panel */
+        const panel = document.createElement("div");
+        panel.className = "cdd-panel";
+        panel.setAttribute("role", "listbox");
+
+        function buildOptions() {
+            panel.innerHTML = "";
+            Array.from(sel.options).forEach((opt, i) => {
+                const item = document.createElement("div");
+                item.className = "cdd-option" + (i === sel.selectedIndex ? " active" : "");
+                item.setAttribute("role", "option");
+                item.dataset.value = opt.value;
+                item.textContent = opt.textContent;
+                panel.appendChild(item);
+            });
+            label.textContent = sel.options[sel.selectedIndex]?.textContent || "";
+        }
+        buildOptions();
+
+        /* 4. Insert into DOM */
+        sel.parentNode.insertBefore(wrap, sel);
+        wrap.appendChild(trigger);
+        wrap.appendChild(panel);
+        sel.classList.add("cdd-hidden");
+        wrap.appendChild(sel);
+
+        /* 5. Toggle */
+        trigger.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const wasOpen = wrap.classList.contains("open");
+            closeAllDropdowns();
+            if (!wasOpen) {
+                wrap.classList.add("open");
+                trigger.setAttribute("aria-expanded", "true");
+                /* Scroll active option into view */
+                const active = panel.querySelector(".active");
+                if (active) active.scrollIntoView({ block: "nearest" });
+            }
+        });
+
+        /* 6. Select option */
+        panel.addEventListener("click", (e) => {
+            const item = e.target.closest(".cdd-option");
+            if (!item) return;
+            sel.value = item.dataset.value;
+            sel.dispatchEvent(new Event("change", { bubbles: true }));
+            panel.querySelectorAll(".cdd-option").forEach(o => o.classList.remove("active"));
+            item.classList.add("active");
+            label.textContent = item.textContent;
+            wrap.classList.remove("open");
+            trigger.setAttribute("aria-expanded", "false");
+        });
+
+        /* 7. Keyboard navigation */
+        trigger.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                trigger.click();
+            } else if (e.key === "Escape") {
+                wrap.classList.remove("open");
+                trigger.setAttribute("aria-expanded", "false");
+            }
+        });
+
+        /* 8. Keep in sync if native select changes programmatically */
+        const observer = new MutationObserver(buildOptions);
+        observer.observe(sel, { childList: true, subtree: true, attributes: true });
+    });
+}
+
+function closeAllDropdowns() {
+    document.querySelectorAll(".cdd.open").forEach(d => {
+        d.classList.remove("open");
+        const btn = d.querySelector(".cdd-trigger");
+        if (btn) btn.setAttribute("aria-expanded", "false");
+    });
+}
+
+/* Close on outside click */
+document.addEventListener("click", closeAllDropdowns);
+
+/* Init after DOM */
+document.addEventListener("DOMContentLoaded", initCustomDropdowns);
 
 console.log("◉ Olist Logistics Intelligence — Keita Yamada aesthetic loaded");

@@ -26,6 +26,9 @@
 
     function expand() {
         overlay.classList.add("chat-expanded");
+        // Hide chart-help overlay to prevent overlap
+        const chartHelp = document.getElementById("chart-help-overlay");
+        if (chartHelp) chartHelp.classList.add("chart-help-hidden");
     }
 
     function minimize() {

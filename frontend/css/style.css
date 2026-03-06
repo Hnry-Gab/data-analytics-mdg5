@@ -22,9 +22,10 @@
     --white: #FFFFFF;
     --off-white: #E6E6E6;
     --gray: #CCCCCC;
-    --muted: rgba(255, 255, 255, 0.50);
-    --dim: rgba(255, 255, 255, 0.25);
-    --faint: rgba(255, 255, 255, 0.10);
+    --muted: rgba(255, 255, 255, 0.75);
+    --dim: rgba(255, 255, 255, 0.60);
+    --subdued: rgba(255, 255, 255, 0.40);
+    --faint: rgba(255, 255, 255, 0.12);
     --ghost: rgba(255, 255, 255, 0.04);
 
     --accent: #0000FF;
@@ -217,7 +218,7 @@ a, button, select, input { cursor: none; }
     font-size: 0.55rem;
     letter-spacing: 0.3em;
     text-transform: uppercase;
-    color: var(--dim);
+    color: var(--muted);
 }
 
 .ky-marquee-track .ky-mx-accent {
@@ -317,7 +318,7 @@ a, button, select, input { cursor: none; }
 .brand-sub {
     font-family: var(--font-mono);
     font-size: 0.55rem;
-    color: var(--dim);
+    color: var(--muted);
     letter-spacing: 0.2em;
     text-transform: uppercase;
 }
@@ -335,7 +336,7 @@ a, button, select, input { cursor: none; }
     border: none;
     border-bottom: 2px solid transparent;
     background: transparent;
-    color: var(--dim);
+    color: var(--muted);
     font-family: var(--font-mono);
     font-size: 0.65rem;
     font-weight: 500;
@@ -384,7 +385,7 @@ a, button, select, input { cursor: none; }
 .status-text {
     font-family: var(--font-mono);
     font-size: 0.55rem;
-    color: var(--dim);
+    color: var(--muted);
     letter-spacing: 0.15em;
     text-transform: uppercase;
 }
@@ -425,7 +426,7 @@ a, button, select, input { cursor: none; }
 
 .hero-label::before {
     content: '//';
-    color: var(--dim);
+    color: var(--subdued);
 }
 
 .hero-title {
@@ -457,7 +458,7 @@ a, button, select, input { cursor: none; }
 .hero-sub {
     font-family: var(--font-mono);
     font-size: 0.72rem;
-    color: var(--dim);
+    color: var(--muted);
     margin-top: 32px;
     max-width: 480px;
     line-height: 1.8;
@@ -483,7 +484,7 @@ a, button, select, input { cursor: none; }
     right: 12px;
     font-family: var(--font-mono);
     font-size: 8px;
-    color: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.12);
     line-height: 1;
     padding: 2px;
 }
@@ -501,30 +502,77 @@ a, button, select, input { cursor: none; }
     align-items: center;
     gap: 2rem;
     padding: 14px 24px;
-    background: rgba(255, 255, 255, 0.025);
-    border: 1px solid var(--border);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.14);
     border-radius: var(--radius-lg);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     margin-bottom: 48px;
+    position: relative;
+    z-index: 10;
+}
+
+.glass-bar::before {
+    content: '⬡';
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.6rem;
+    color: var(--cyan);
+    opacity: 0.6;
+}
+
+.glass-bar::after {
+    content: 'FILTERS';
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--font-mono);
+    font-size: 0.45rem;
+    letter-spacing: 0.2em;
+    color: var(--cyan);
+    opacity: 0.5;
+    text-transform: uppercase;
 }
 
 .filter-item {
     display: flex;
     align-items: center;
     gap: 12px;
+    padding-left: 14px;
 }
 
 .filter-item label {
     font-family: var(--font-mono);
     font-size: 0.55rem;
     font-weight: 600;
-    color: var(--dim);
+    color: var(--off-white);
     letter-spacing: 0.2em;
     white-space: nowrap;
 }
 
-.glass-bar select { width: 180px; }
+.glass-bar select {
+    width: 180px;
+    color: var(--white);
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14);
+    padding: 8px 36px 8px 12px;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+}
+
+.glass-bar select:hover {
+    border-color: var(--cyan);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.glass-bar select:focus {
+    border-color: var(--cyan);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.12);
+}
 
 /* ── KPI Grid ────────────────────────────────────────────────────────── */
 
@@ -559,8 +607,8 @@ a, button, select, input { cursor: none; }
 .kpi-label {
     font-family: var(--font-mono);
     font-size: 0.55rem;
-    font-weight: 500;
-    color: var(--dim);
+    font-weight: 600;
+    color: var(--muted);
     text-transform: uppercase;
     letter-spacing: 0.2em;
     margin-bottom: 14px;
@@ -581,7 +629,7 @@ a, button, select, input { cursor: none; }
 .kpi-delta {
     font-family: var(--font-mono);
     font-size: 0.65rem;
-    color: var(--dim);
+    color: var(--muted);
     margin-top: 8px;
 }
 
@@ -622,7 +670,7 @@ a, button, select, input { cursor: none; }
     font-family: var(--font-mono);
     font-size: 0.55rem;
     font-weight: 600;
-    color: var(--dim);
+    color: var(--off-white);
     letter-spacing: 0.2em;
     text-transform: uppercase;
     margin-bottom: 8px;
@@ -694,7 +742,7 @@ a, button, select, input { cursor: none; }
     font-family: var(--font-mono);
     font-size: 0.5rem;
     font-weight: 600;
-    color: var(--dim);
+    color: var(--muted);
     letter-spacing: 0.3em;
     text-transform: uppercase;
     margin-bottom: 20px;
@@ -768,7 +816,7 @@ a, button, select, input { cursor: none; }
 .stat-caption {
     font-family: var(--font-mono);
     font-size: 0.55rem;
-    color: var(--dim);
+    color: var(--muted);
     letter-spacing: 0.2em;
     text-transform: uppercase;
     margin-top: 8px;
@@ -795,7 +843,7 @@ a, button, select, input { cursor: none; }
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
-    align-items: start;
+    align-items: stretch;
 }
 
 .predictor-form {
@@ -807,7 +855,11 @@ a, button, select, input { cursor: none; }
     -webkit-backdrop-filter: blur(12px);
 }
 
-.predictor-result { min-height: 600px; }
+.predictor-result {
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
 
 .form-header {
     font-family: var(--font-display);
@@ -855,7 +907,7 @@ a, button, select, input { cursor: none; }
     font-family: var(--font-mono);
     font-size: 0.55rem;
     font-weight: 500;
-    color: var(--dim);
+    color: var(--muted);
     letter-spacing: 0.15em;
     text-transform: uppercase;
     margin-bottom: 8px;
@@ -892,32 +944,190 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
+/* Native select — hidden when custom dropdown is active */
+select.cdd-hidden {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+}
+
 select {
     font-family: var(--font-mono);
     font-size: 0.8rem;
-    background: transparent;
-    color: var(--muted);
-    border: none;
-    border-bottom: 1px solid var(--border);
-    padding: 10px 24px 10px 0;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--off-white);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: var(--radius-sm);
+    padding: 10px 36px 10px 14px;
     width: 100%;
     outline: none;
-    transition: border-color 0.25s var(--ease);
+    cursor: pointer;
+    transition: all 0.25s var(--ease);
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10'%3E%3Cpath fill='%230000FF' d='M5 7L0 2h10z'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%2300F0FF' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
-    background-position: right 0 center;
+    background-position: right 12px center;
+}
+
+select:hover {
+    border-color: rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.06);
 }
 
 select:focus {
-    border-color: var(--accent);
-    box-shadow: 0 2px 8px var(--accent-glow);
+    border-color: var(--cyan);
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.10), 0 2px 12px rgba(0, 240, 255, 0.06);
 }
 
 select option {
     background: var(--surface);
-    color: var(--muted);
+    color: var(--off-white);
+    padding: 8px;
 }
+
+/* ── Custom Dropdown ─────────────────────────────────────────────────── */
+
+.cdd {
+    position: relative;
+    width: 100%;
+}
+
+.cdd-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    color: var(--off-white);
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    width: 100%;
+    cursor: pointer;
+    transition: all 0.25s var(--ease);
+    user-select: none;
+}
+
+.cdd-trigger:hover {
+    border-color: rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.cdd.open .cdd-trigger {
+    border-color: var(--cyan);
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.10), 0 2px 12px rgba(0, 240, 255, 0.06);
+}
+
+.cdd-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cdd-chevron {
+    flex-shrink: 0;
+    transition: transform 0.25s var(--ease);
+    color: var(--cyan);
+}
+
+.cdd.open .cdd-chevron {
+    transform: rotate(180deg);
+}
+
+.cdd-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 900;
+    background: rgba(17, 17, 17, 0.96);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--radius-sm);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255, 255, 255, 0.08);
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 4px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: all 0.2s var(--ease);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255,255,255,0.10) transparent;
+}
+
+.cdd.open .cdd-panel {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.cdd-panel::-webkit-scrollbar { width: 4px; }
+.cdd-panel::-webkit-scrollbar-track { background: transparent; }
+.cdd-panel::-webkit-scrollbar-thumb {
+    background: rgba(255,255,255,0.12);
+    border-radius: 2px;
+}
+
+.cdd-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--muted);
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s var(--ease);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.cdd-option:hover {
+    color: var(--white);
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.cdd-option.active {
+    color: var(--cyan);
+    background: rgba(0, 240, 255, 0.06);
+}
+
+.cdd-option.active::before {
+    content: '';
+    display: block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--cyan);
+    flex-shrink: 0;
+}
+
+/* Glass-bar overrides */
+.glass-bar .cdd-trigger {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14);
+    color: var(--white);
+    font-size: 0.72rem;
+    padding: 8px 12px;
+    letter-spacing: 0.04em;
+}
+
+.glass-bar .cdd-trigger:hover {
+    border-color: var(--cyan);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.glass-bar .cdd { width: 180px; }
 
 /* ── Range Slider — Technical ────────────────────────────────────────── */
 
@@ -1221,7 +1431,7 @@ select option {
     align-self: flex-start;
 }
 .chat-msg--bot p {
-    color: var(--text);
+    color: var(--off-white);
     border-color: var(--border);
     border-radius: var(--radius-md) var(--radius-md) var(--radius-md) 4px;
 }
@@ -1264,7 +1474,7 @@ select option {
 }
 
 .chat-input::placeholder {
-    color: var(--muted);
+    color: var(--subdued);
 }
 
 .chat-send {
@@ -1291,14 +1501,14 @@ select option {
 /* ── Chart Help Button ───────────────────────────────────────────────── */
 
 .chart-help-btn {
-    width: 1.6em;
-    height: 1.6em;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
-    border: 1px solid var(--border);
-    background: var(--surface);
-    color: var(--dim);
+    border: 1px solid var(--border-hover);
+    background: var(--elevated);
+    color: var(--muted);
     font-family: var(--font-mono);
-    font-size: inherit;
+    font-size: 12px;
     font-weight: 600;
     cursor: pointer;
     display: inline-flex;
@@ -1306,7 +1516,7 @@ select option {
     justify-content: center;
     transition: all 0.2s var(--ease);
     vertical-align: middle;
-    margin-left: 0.5em;
+    margin-left: 8px;
     flex-shrink: 0;
 }
 
@@ -1317,10 +1527,10 @@ select option {
 }
 
 .section-title .chart-help-btn {
-    width: 1.4em;
-    height: 1.4em;
-    font-size: inherit;
-    margin-left: 0.4em;
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+    margin-left: 10px;
 }
 
 /* ── Chart Help Overlay (left panel) ─────────────────────────────────── */
@@ -1368,7 +1578,7 @@ select option {
     font-family: var(--font-mono);
     font-size: 0.6rem;
     font-weight: 600;
-    color: var(--dim);
+    color: var(--off-white);
     letter-spacing: 0.15em;
     text-transform: uppercase;
 }
@@ -1396,10 +1606,15 @@ select option {
 .chart-help-body {
     flex: 1;
     display: flex;
-    align-items: center;
-    justify-content: center;
+    align-items: stretch;
+    justify-content: stretch;
     padding: 16px;
     overflow: auto;
+    min-height: 0;
+}
+
+.chart-help-body > div {
+    flex: 1;
     min-height: 0;
 }
 
@@ -1415,11 +1630,30 @@ select option {
 .risk-result {
     padding: 0;
     animation: fadeUp 0.5s var(--ease-out);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
 }
 
 .risk-result .glass-card {
-    padding: 32px;
-    margin-bottom: 1px;
+    padding: 24px;
+    margin-bottom: 0;
+}
+
+.risk-result .glass-card.chart-card {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.risk-result .fvec {
+    display: none;
+}
+
+.predictor-recs {
+    margin-top: 12px;
 }
 
 .rec-card {
@@ -1484,14 +1718,14 @@ select option {
     font-family: var(--font-display);
     font-size: 4rem;
     font-weight: 300;
-    color: var(--faint);
+    color: var(--subdued);
     line-height: 1;
 }
 
 .waiting-text {
     font-family: var(--font-mono);
     font-size: 0.6rem;
-    color: var(--dim);
+    color: var(--muted);
     letter-spacing: 0.2em;
     text-transform: uppercase;
     margin-top: 28px;
@@ -1504,7 +1738,7 @@ select option {
 .fvec pre {
     font-family: var(--font-mono);
     font-size: 0.7rem;
-    color: var(--dim);
+    color: var(--muted);
     background: rgba(255, 255, 255, 0.015);
     padding: 20px;
     overflow-x: auto;
@@ -1516,6 +1750,19 @@ select option {
 
 .js-plotly-plot .plotly .modebar { opacity: 0 !important; transition: opacity 0.3s; }
 .js-plotly-plot:hover .plotly .modebar { opacity: 0.2 !important; }
+
+/* Legend filter hint */
+.js-plotly-plot .legend .traces { cursor: pointer; }
+.legend-filter-hint {
+    font-family: var(--font-mono);
+    font-size: 0.5rem;
+    color: var(--cyan);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-align: right;
+    margin-top: 6px;
+    padding-right: 4px;
+}
 .js-plotly-plot, .plot-container, .svg-container { background: transparent !important; }
 .js-plotly-plot,
 .js-plotly-plot .plot-container,
@@ -1543,7 +1790,7 @@ select option {
 .footer-brand {
     font-family: var(--font-mono);
     font-size: 0.6rem;
-    color: var(--dim);
+    color: var(--muted);
     font-weight: 500;
     letter-spacing: 0.1em;
     text-transform: uppercase;
@@ -1552,7 +1799,7 @@ select option {
 .footer-text {
     font-family: var(--font-mono);
     font-size: 0.55rem;
-    color: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.35);
     letter-spacing: 0.15em;
     text-transform: uppercase;
 }
@@ -1590,6 +1837,8 @@ select option {
 
     .glass-bar       { padding: 22px 36px; gap: 3rem; margin-bottom: 64px; }
     .glass-bar select { width: 240px; font-size: 1.1rem; }
+    .glass-bar .cdd { width: 240px; }
+    .glass-bar .cdd-trigger { font-size: 1rem; }
     .filter-item label { font-size: 0.78rem; }
 
     .chart-card      { padding: 44px; margin-bottom: 32px; }
@@ -1613,7 +1862,7 @@ select option {
     .form-group-label { font-size: 0.72rem; margin-bottom: 28px; }
     .field-label     { font-size: 0.78rem; margin-bottom: 12px; }
     input[type="number"], input[type="text"] { font-size: 1.1rem; padding: 14px 0; }
-    select           { font-size: 1.05rem; padding: 14px 24px 14px 0; }
+    select           { font-size: 1.05rem; padding: 14px 40px 14px 18px; }
     .btn-lime        { padding: 18px 40px; font-size: 0.85rem; margin-top: 32px; }
 
     .ky-marquee-track span { font-size: 0.78rem; }
@@ -1676,6 +1925,8 @@ select option {
     /* Filter bar */
     .glass-bar       { padding: 28px 48px; gap: 4rem; margin-bottom: 80px; border-radius: 24px; }
     .glass-bar select { width: 320px; font-size: 1.1rem; }
+    .glass-bar .cdd { width: 320px; }
+    .glass-bar .cdd-trigger { font-size: 1rem; }
     .filter-item label { font-size: 0.78rem; }
 
     /* Charts */
@@ -1702,14 +1953,13 @@ select option {
     /* Predictor */
     .predictor-layout { gap: 32px; }
     .predictor-form  { padding: 64px; border-radius: 28px; }
-    .predictor-result { min-height: 900px; }
     .form-header     { font-size: 1.2rem; margin-bottom: 48px; }
     .form-group-label { font-size: 0.75rem; margin-bottom: 36px; }
     .form-row        { gap: 32px; }
     .form-field      { margin-bottom: 32px; }
     .field-label     { font-size: 0.78rem; margin-bottom: 16px; }
     input[type="number"], input[type="text"] { font-size: 1.1rem; padding: 18px 0; }
-    select           { font-size: 1.05rem; padding: 18px 32px 18px 0; }
+    select           { font-size: 1.05rem; padding: 18px 44px 18px 20px; }
     .btn-lime        { padding: 22px 52px; font-size: 0.85rem; margin-top: 40px; border-radius: 16px; }
     .cw-range        { margin: 20px 0 12px; }
     .waiting         { height: 900px; }
@@ -1780,6 +2030,7 @@ select option {
 
     .glass-bar       { padding: 18px 32px; margin-bottom: 56px; }
     .glass-bar select { width: 210px; }
+    .glass-bar .cdd { width: 210px; }
     .filter-item label { font-size: 0.68rem; }
 
     .chart-card      { padding: 36px; margin-bottom: 28px; }
@@ -1871,9 +2122,9 @@ select option {
     .grid-2 > .glass-card:last-child,
     .grid-asymmetric > .glass-card:last-child { border: 1px solid var(--border); }
 
-    .predictor-layout { grid-template-columns: 1fr; }
+    .predictor-layout { grid-template-columns: 1fr; align-items: start; }
     .predictor-form   { border: 1px solid var(--border); border-radius: var(--radius-md); }
-    .predictor-result  { min-height: 450px; }
+    .predictor-result  { overflow: visible; }
     .waiting           { height: 450px; }
 
     .stat-big        { font-size: 3rem; }
@@ -1926,6 +2177,7 @@ select option {
     .glass-bar         { flex-direction: column; gap: 12px; padding: 16px;
                          border-radius: var(--radius-md); }
     .glass-bar select  { width: 100%; }
+    .glass-bar .cdd { width: 100%; }
     .filter-item       { width: 100%; }
     .filter-item label { min-width: 60px; }
 
@@ -1951,7 +2203,7 @@ select option {
     /* Predictor */
     .form-row          { grid-template-columns: 1fr; }
     .predictor-form    { padding: 24px 20px; }
-    .predictor-result  { min-height: 350px; }
+    .predictor-result  { overflow: visible; }
     .waiting           { height: 350px; }
     .waiting-ring      { width: 120px; height: 120px; }
     .waiting-glyph     { font-size: 3rem; }
