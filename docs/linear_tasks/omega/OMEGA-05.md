@@ -18,7 +18,7 @@ Reunir todo o time para um ensaio completo da apresentação, testar o App ao vi
    - Definir quem apresenta cada bloco.
 
 2. **Teste do App ao Vivo (20 min):**
-   - Abrir o Frontend/FastAPI (local ou Cloud) e navegar pelas 3 abas.
+   - Abrir o Streamlit (local ou Cloud) e navegar pelas 3 abas.
    - Testar o Simulador com inputs extremos (peso 0, frete 0, estado raro).
    - Verificar se o deploy Cloud está acessível publicamente.
 

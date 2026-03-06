@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="title">Olist | Logistics Intelligence</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdn.plot.ly/plotly-2.35.0.min.js"></script>
+</head>
+<body>
+
+    <!-- Keita Yamada — Grain Overlay -->
+    <div class="grain-overlay"></div>
+
+    <!-- Keita Yamada — Visible Grid Lines -->
+    <div class="ky-grid-lines"></div>
+    <div class="ky-vline-left"></div>
+    <div class="ky-vline-right"></div>
+    <span class="ky-cross ky-cross--tl">+</span>
+    <span class="ky-cross ky-cross--tr">+</span>
+    <span class="ky-cross ky-cross--bl">+</span>
+    <span class="ky-cross ky-cross--br">+</span>
+
+    <!-- Keita Yamada — FUI Metadata -->
+    <div class="fui-corner fui-corner--tl">[PROJ_ID: OLIST-2026]</div>
+    <div class="fui-corner fui-corner--tr" id="fui-clock">00:00:00 UTC</div>
+    <div class="fui-corner fui-corner--bl">-23.5505 / -46.6333</div>
+    <div class="fui-corner fui-corner--br">V1.0.0 — ALPHA EDTECH</div>
+
+    <!-- Navigation -->
+    <nav id="top-nav">
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <span class="brand-logo">◉</span>
+                <span class="brand-name">Olist</span>
+                <span class="brand-divider"></span>
+                <span class="brand-sub" data-i18n="nav.subtitle">Logistics Intelligence</span>
+            </div>
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-tab="dashboard">
+                    <span class="tab-dot"></span><span data-i18n="nav.dashboard">Dashboard</span>
+                </button>
+                <button class="nav-tab" data-tab="insights">
+                    <span class="tab-dot"></span><span data-i18n="nav.insights">Insights</span>
+                </button>
+                <button class="nav-tab" data-tab="predictor">
+                    <span class="tab-dot"></span><span data-i18n="nav.predictor">Predictor</span>
+                </button>
+            </div>
+            <div class="nav-status">
+                <span class="status-dot"></span>
+                <span class="status-text">GRUPO 5</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main id="main-content">
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- TAB 1: DASHBOARD                                          -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <section id="tab-dashboard" class="page active">
+
+            <!-- Hero -->
+            <div class="hero reveal">
+                <div class="hero-label" data-i18n="dash.heroLabel">REAL-TIME OVERVIEW</div>
+                <h1 class="hero-title">
+                    <span class="hero-line" data-i18n="dash.heroLine1">Logistics</span>
+                    <span class="hero-line hero-accent"><span data-i18n="dash.heroLine2">Overview</span><span class="hero-dot">.</span></span>
+                </h1>
+                <p class="hero-sub" data-i18n="dash.heroSub">Historical performance across all operations — 96k+ orders analyzed.</p>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="glass-bar reveal" style="animation-delay:0.15s">
+                <div class="filter-item">
+                    <label data-i18n="dash.filterState">STATE</label>
+                    <select id="dash-state-filter">
+                        <option value="" data-i18n="dash.allStates">All states</option>
+                        <option value="AC">AC</option><option value="AL">AL</option>
+                        <option value="AM">AM</option><option value="AP">AP</option>
+                        <option value="BA">BA</option><option value="CE">CE</option>
+                        <option value="DF">DF</option><option value="ES">ES</option>
+                        <option value="GO">GO</option><option value="MA">MA</option>
+                        <option value="MG">MG</option><option value="MS">MS</option>
+                        <option value="MT">MT</option><option value="PA">PA</option>
+                        <option value="PB">PB</option><option value="PE">PE</option>
+                        <option value="PI">PI</option><option value="PR">PR</option>
+                        <option value="RJ">RJ</option><option value="RN">RN</option>
+                        <option value="RO">RO</option><option value="RR">RR</option>
+                        <option value="RS">RS</option><option value="SC">SC</option>
+                        <option value="SE">SE</option><option value="SP">SP</option>
+                        <option value="TO">TO</option>
+                    </select>
+                </div>
+                <div class="filter-item">
+                    <label data-i18n="dash.filterPeriod">PERIOD</label>
+                    <select id="dash-period-filter">
+                        <option value="all" data-i18n="dash.fullDataset">Full dataset</option>
+                        <option value="2017">2017</option>
+                        <option value="2018">2018</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- KPI Grid -->
+            <div class="kpi-grid reveal" style="animation-delay:0.25s">
+                <div class="kpi-card glass-card">
+                    <div class="kpi-label" data-i18n="dash.kpiOrders">Total Orders</div>
+                    <div class="kpi-value" id="kpi-orders">—</div>
+                    <div class="kpi-bar"><div class="kpi-bar-fill" style="width:100%"></div></div>
+                </div>
+                <div class="kpi-card glass-card">
+                    <div class="kpi-label" data-i18n="dash.kpiDelayed">Delayed</div>
+                    <div class="kpi-value kpi-alert" id="kpi-delayed">—</div>
+                    <div class="kpi-delta" id="kpi-delayed-pct"></div>
+                </div>
+                <div class="kpi-card glass-card">
+                    <div class="kpi-label" data-i18n="dash.kpiFreight">Avg Freight</div>
+                    <div class="kpi-value" id="kpi-freight">—</div>
+                    <div class="kpi-bar"><div class="kpi-bar-fill" style="width:35%"></div></div>
+                </div>
+                <div class="kpi-card glass-card">
+                    <div class="kpi-label" data-i18n="dash.kpiDelta">Deadline Delta</div>
+                    <div class="kpi-value kpi-positive" id="kpi-delta">—</div>
+                    <div class="kpi-bar"><div class="kpi-bar-fill kpi-bar-green" style="width:60%"></div></div>
+                </div>
+            </div>
+
+            <!-- Gauges -->
+            <div class="grid-2 reveal" style="animation-delay:0.35s">
+                <div class="glass-card chart-card">
+                    <div class="chart-label" data-i18n="dash.chartDelay">DELAY RATE</div>
+                    <div id="dash-gauge-delay"></div>
+                </div>
+                <div class="glass-card chart-card">
+                    <div class="chart-label" data-i18n="dash.chartFreight">AVG FREIGHT</div>
+                    <div id="dash-gauge-freight"></div>
+                </div>
+            </div>
+
+            <!-- Map + Ranking -->
+            <div class="grid-asymmetric reveal" id="dash-geo-grid">
+                <div class="glass-card chart-card">
+                    <div class="chart-header">
+                        <div class="chart-label">
+                            <span data-i18n="dash.chartGeo">GEOGRAPHIC DISTRIBUTION</span>
+                            <span class="state-badge" id="dash-state-badge" style="display: none;"></span>
+                        </div>
+                        <div class="chart-tag" data-i18n="dash.tagChoropleth">Choropleth</div>
+                    </div>
+                    <div id="dash-map"></div>
+                </div>
+                <div class="glass-card chart-card" id="dash-rank-card">
+                    <div class="chart-header">
+                        <div class="chart-label" data-i18n="dash.chartTopStates">TOP DELAY STATES</div>
+                        <div class="chart-tag" data-i18n="dash.tagRanking">Ranking</div>
+                    </div>
+                    <div id="dash-rank"></div>
+                </div>
+            </div>
+
+            <!-- Timeline -->
+            <div class="glass-card chart-card reveal">
+                <div class="chart-header">
+                    <div class="chart-label" data-i18n="dash.chartTimeline">DELAY RATE OVER TIME</div>
+                    <div class="chart-tag" data-i18n="dash.tagTimeline">Timeline</div>
+                </div>
+                <div id="dash-timeline"></div>
+            </div>
+
+            <!-- Scatter -->
+            <div class="glass-card chart-card reveal">
+                <div class="chart-header">
+                    <div class="chart-label" data-i18n="dash.chartScatter">PRICE VS FREIGHT</div>
+                    <div class="chart-tag" data-i18n="dash.tagOutcome">Colored by outcome</div>
+                </div>
+                <div id="dash-scatter"></div>
+            </div>
+
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- TAB 2: INSIGHTS                                           -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <section id="tab-insights" class="page">
+
+            <div class="hero reveal">
+                <div class="hero-label" data-i18n="ins.heroLabel">DATA-DRIVEN INTELLIGENCE</div>
+                <h1 class="hero-title">
+                    <span class="hero-line" data-i18n="ins.heroLine1">Strategic</span>
+                    <span class="hero-line hero-accent"><span data-i18n="ins.heroLine2">Insights</span><span class="hero-dot">.</span></span>
+                </h1>
+                <p class="hero-sub" data-i18n="ins.heroSub">Patterns extracted from 100k+ orders across all Brazilian states.</p>
+            </div>
+
+            <!-- Section 01 — Interstate Routes -->
+            <div class="insight-section reveal">
+                <div class="section-side">
+                    <span class="vertical-label" data-i18n="ins.labelInterstate">INTERSTATE</span>
+                    <span class="section-num">01</span>
+                </div>
+                <div class="section-body">
+                    <h2 class="section-title" data-i18n="ins.titleInterstate">Interstate Routes</h2>
+                    <div class="insight-split">
+                        <div class="insight-text">
+                            <div class="stat-block">
+                                <div class="stat-big" id="ins-inter-rate">—</div>
+                                <div class="stat-caption" data-i18n="ins.captionInterstate">Interstate delay rate</div>
+                            </div>
+                            <p class="editorial" id="ins-inter-text">
+                                Orders crossing state borders show significantly higher delay rates.
+                                The distance and complexity of multi-state logistics drives this gap.
+                            </p>
+                        </div>
+                        <div class="insight-chart">
+                            <div id="ins-donut-chart"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <!-- Section 02 — Critical Categories -->
+            <div class="insight-section reveal">
+                <div class="section-side">
+                    <span class="vertical-label" data-i18n="ins.labelCategories">CATEGORIES</span>
+                    <span class="section-num">02</span>
+                </div>
+                <div class="section-body">
+                    <h2 class="section-title" data-i18n="ins.titleCategories">Critical Categories</h2>
+                    <div class="insight-split reverse">
+                        <div class="insight-chart wide">
+                            <div id="ins-treemap-chart"></div>
+                        </div>
+                        <div class="insight-text">
+                            <p class="editorial" id="ins-cat-text">
+                                Categories sized by volume, colored by delay severity.
+                                Heavier and bulkier products dominate the high-risk zone.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <!-- Section 03 — Seller Bottleneck -->
+            <div class="insight-section reveal">
+                <div class="section-side">
+                    <span class="vertical-label" data-i18n="ins.labelSellers">SELLERS</span>
+                    <span class="section-num">03</span>
+                </div>
+                <div class="section-body">
+                    <h2 class="section-title" data-i18n="ins.titleSellers">Seller Bottleneck</h2>
+                    <p class="editorial" data-i18n="ins.sellerText" style="margin-bottom:2rem">
+                        Distribution of seller shipping speed, split by delivery outcome.
+                        The violin shape reveals the full density — not just averages.
+                    </p>
+                    <div class="glass-card chart-card">
+                        <div id="ins-violin-chart"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <!-- Section 04 — Freight Economics -->
+            <div class="insight-section reveal">
+                <div class="section-side">
+                    <span class="vertical-label" data-i18n="ins.labelFreight">FREIGHT</span>
+                    <span class="section-num">04</span>
+                </div>
+                <div class="section-body">
+                    <h2 class="section-title" data-i18n="ins.titleFreight">Freight Economics</h2>
+                    <p class="editorial" data-i18n="ins.freightText" style="margin-bottom:2rem">
+                        How price-to-freight ratio relates to delay outcomes.
+                        Each dot is an order — highlighted dots were delayed.
+                    </p>
+                    <div class="glass-card chart-card">
+                        <div id="ins-freight-scatter"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <!-- Section 05 — Macro-Region Routes -->
+            <div class="insight-section reveal">
+                <div class="section-side">
+                    <span class="vertical-label" data-i18n="ins.labelMacro">MACRO-REGION</span>
+                    <span class="section-num">05</span>
+                </div>
+                <div class="section-body">
+                    <h2 class="section-title" data-i18n="ins.titleMacro">Macro-Region Routes</h2>
+                    <p class="editorial" data-i18n="ins.macroText" style="margin-bottom:2rem">
+                        Detailed heatmap of delay rates between origin and destination regions.
+                        Highlights logistical bottlenecks such as Southeast to North/Northeast routes.
+                    </p>
+                    <div class="glass-card chart-card">
+                        <div id="ins-heatmap-chart"></div>
+                    </div>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <!-- TAB 3: PREDICTOR                                          -->
+        <!-- ═══════════════════════════════════════════════════════════ -->
+        <section id="tab-predictor" class="page">
+
+            <div class="hero reveal">
+                <div class="hero-label" data-i18n="pred.heroLabel">AI-POWERED SIMULATION</div>
+                <h1 class="hero-title">
+                    <span class="hero-line" data-i18n="pred.heroLine1">Risk</span>
+                    <span class="hero-line hero-accent"><span data-i18n="pred.heroLine2">Predictor</span><span class="hero-dot">.</span></span>
+                </h1>
+                <p class="hero-sub" data-i18n="pred.heroSub">Simulate a new order and assess delay probability in real time.</p>
+            </div>
+
+            <div class="predictor-layout reveal">
+                <!-- Form Panel -->
+                <div class="predictor-form">
+                    <div class="form-header">
+                        <span class="form-header-dot"></span>
+                        <span data-i18n="pred.parameters">Parameters</span>
+                    </div>
+
+                    <div class="form-group-label" data-i18n="pred.route">Route</div>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label class="field-label" data-i18n="pred.originCep">Origin CEP (8 digits)</label>
+                            <input type="text" id="pred-origin-cep" value="01001000" maxlength="8">
+                        </div>
+                        <div class="form-field">
+                            <label class="field-label" data-i18n="pred.destCep">Dest CEP (8 digits)</label>
+                            <input type="text" id="pred-dest-cep" value="20000000" maxlength="8">
+                        </div>
+                    </div>
+
+                    <div class="form-group-label" data-i18n="pred.product" style="margin-top:1.5rem">Product</div>
+                    <div class="form-row">
+                        <div class="form-field" style="width: 100%; margin-bottom: 12px;">
+                            <label class="field-label" data-i18n="pred.category">Category</label>
+                            <select id="pred-category">
+                                <option value="beleza_saude">Beleza e Saúde</option>
+                                <option value="relogios_presentes">Relógios e Presentes</option>
+                                <option value="cama_mesa_banho">Cama, Mesa e Banho</option>
+                                <option value="esporte_lazer">Esporte e Lazer</option>
+                                <option value="informatica_acessorios">Informática e Acessórios</option>
+                                <option value="moveis_decoracao">Móveis e Decoração</option>
+                                <option value="utilidades_domesticas">Utilidades Domésticas</option>
+                                <option value="brinquedos">Brinquedos</option>
+                                <option value="automotivo">Automotivo</option>
+                                <option value="ferramentas_jardim">Ferramentas e Jardim</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label class="field-label" data-i18n="pred.weight">Weight (g)</label>
+                            <input type="number" id="pred-weight" value="1000" min="0" step="100">
+                        </div>
+                        <div class="form-field">
+                            <label class="field-label" data-i18n="pred.price">Price (R$)</label>
+                            <input type="number" id="pred-price" value="50" min="0" step="5">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label class="field-label" data-i18n="pred.volume">Volume (cm³)</label>
+                            <input type="number" id="pred-volume" value="2000" min="0" step="100">
+                        </div>
+                        <div class="form-field">
+                            <label class="field-label" data-i18n="pred.freight">Freight (R$)</label>
+                            <input type="number" id="pred-freight" value="15" min="0" step="5">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label class="field-label" data-i18n="pred.items">Total Items</label>
+                            <input type="number" id="pred-items" value="1" min="1" step="1">
+                        </div>
+                        <div class="form-field">
+                            <label class="field-label" data-i18n="pred.estimatedDays">Estimated Days</label>
+                            <input type="number" id="pred-estimated-days" value="10" min="1" step="1">
+                        </div>
+                    </div>
+
+                    <div class="form-group-label" data-i18n="pred.operations" style="margin-top:1.5rem">Operations</div>
+                    <div class="form-field">
+                        <label class="field-label" data-i18n-html="pred.sellerDays">Seller shipping days: <span class="field-val" id="seller-days-val">2</span></label>
+                        <input type="range" id="pred-seller-days" min="0" max="15" value="2" step="1" class="cw-range">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-field">
+                            <label class="field-label" data-i18n="pred.sellerHistory">Seller Delay Rate (0-1)</label>
+                            <input type="number" id="pred-seller-history" value="0.05" min="0" max="1" step="0.01">
+                        </div>
+                        <div class="form-field">
+                            <label class="field-label" data-i18n="pred.sellerOrders">Seller Past Orders</label>
+                            <input type="number" id="pred-seller-orders" value="50" min="0" step="10">
+                        </div>
+                    </div>
+
+                    <button id="pred-submit" class="btn-lime" data-i18n="pred.submit" style="margin-top:1.5rem">Run Simulation →</button>
+                </div>
+
+                <!-- Result Panel -->
+                <div id="pred-result" class="predictor-result">
+                    <div class="waiting">
+                        <div class="waiting-ring">
+                            <svg viewBox="0 0 100 100">
+                                <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(0,0,255,0.08)" stroke-width="1"/>
+                                <circle cx="50" cy="50" r="35" fill="none" stroke="rgba(0,0,255,0.05)" stroke-width="0.5"/>
+                                <circle cx="50" cy="50" r="25" fill="none" stroke="rgba(0,0,255,0.03)" stroke-width="0.5"/>
+                            </svg>
+                            <span class="waiting-glyph">?</span>
+                        </div>
+                        <div class="waiting-text" data-i18n="pred.waiting">Awaiting parameters</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommendations (full width, below form + charts) -->
+            <div id="pred-recommendations" class="predictor-recs reveal" style="display:none"></div>
+
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <!-- Marquee -->
+        <div class="ky-marquee">
+            <div class="ky-marquee-track">
+                <span>Olist Intelligence</span>
+                <span class="ky-mx-accent">96K+ Orders</span>
+                <span>Logistics Analytics</span>
+                <span class="ky-mx-accent">27 States</span>
+                <span>Delay Prediction</span>
+                <span class="ky-mx-accent">Machine Learning</span>
+                <span>GRUPO 5</span>
+                <span class="ky-mx-accent">ALPHA EDTECH 2026</span>
+                <span>Olist Intelligence</span>
+                <span class="ky-mx-accent">96K+ Orders</span>
+                <span>Logistics Analytics</span>
+                <span class="ky-mx-accent">27 States</span>
+                <span>Delay Prediction</span>
+                <span class="ky-mx-accent">Machine Learning</span>
+                <span>GRUPO 5</span>
+                <span class="ky-mx-accent">ALPHA EDTECH 2026</span>
+            </div>
+        </div>
+        <div class="footer-inner">
+            <span class="footer-brand">◉ Olist Intelligence</span>
+            <span class="footer-text" data-i18n="footer.text">GRUPO 5 — CloudWalk Data Challenge</span>
+        </div>
+    </footer>
+
+    <!-- Chatbot -->
+    <button id="chat-fab" aria-label="Open chat">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+    </button>
+
+    <div id="chat-overlay" class="chat-overlay chat-hidden">
+        <div class="chat-panel">
+            <div class="chat-header">
+                <div class="chat-header-left">
+                    <span class="chat-header-dot"></span>
+                    <span class="chat-header-title" data-i18n="chat.title">OLIST AI</span>
+                    <span class="chat-header-status" data-i18n="chat.status">// online</span>
+                </div>
+                <div class="chat-header-actions">
+                    <button id="chat-expand" class="chat-btn" aria-label="Expand" title="Expand">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square">
+                            <path d="M2 2h5M2 2v5M14 14h-5M14 14v-5"/>
+                        </svg>
+                    </button>
+                    <button id="chat-minimize" class="chat-btn chat-btn--hide" aria-label="Minimize" title="Minimize">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square">
+                            <path d="M7 2L2 2 2 7M9 14l5 0 0-5"/>
+                        </svg>
+                    </button>
+                    <button id="chat-close" class="chat-btn" aria-label="Close">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square">
+                            <path d="M4 4l8 8M12 4l-8 8"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="chat-messages" id="chat-messages">
+                <div class="chat-msg chat-msg--system">
+                    <span class="chat-msg-meta">[SYS 00:00:01]</span>
+                    <p data-i18n="chat.sysConnect">Connection established. OLIST AI v1.0 ready.</p>
+                </div>
+                <div class="chat-msg chat-msg--bot">
+                    <span class="chat-msg-meta">[AI 00:00:02]</span>
+                    <p data-i18n="chat.welcome">Welcome to Olist Logistics Intelligence. I can help you analyze delivery patterns, predict delays, and optimize freight routes. What would you like to explore?</p>
+                </div>
+                <div class="chat-msg chat-msg--user">
+                    <span class="chat-msg-meta">[USR 00:01:15]</span>
+                    <p data-i18n="chat.mockQ1">Which states have the highest delay rates?</p>
+                </div>
+                <div class="chat-msg chat-msg--bot">
+                    <span class="chat-msg-meta">[AI 00:01:16]</span>
+                    <p data-i18n-html="chat.mockA1">Based on the current dataset, the top 3 states by delay rate are:<br><strong>RR</strong> — 14.0%<br><strong>AC</strong> — 13.5%<br><strong>AP</strong> — 12.8%<br><br>Northern region states consistently show higher delay rates due to longer distances and limited logistics infrastructure.</p>
+                </div>
+                <div class="chat-msg chat-msg--user">
+                    <span class="chat-msg-meta">[USR 00:02:40]</span>
+                    <p data-i18n="chat.mockQ2">What about interstate vs intrastate deliveries?</p>
+                </div>
+                <div class="chat-msg chat-msg--bot">
+                    <span class="chat-msg-meta">[AI 00:02:41]</span>
+                    <p data-i18n-html="chat.mockA2">Interstate deliveries show a significantly higher delay rate of <strong>9.4%</strong> compared to <strong>5.1%</strong> for intrastate. The freight-to-price ratio is the strongest predictive feature for interstate delays.</p>
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" class="chat-input" data-i18n-placeholder="chat.placeholder" placeholder="Type a message..." autocomplete="off">
+                <button id="chat-send" class="chat-send" aria-label="Send">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square">
+                        <path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart Help Overlay (left panel) -->
+    <div id="chart-help-overlay" class="chart-help-overlay chart-help-hidden">
+        <div class="chart-help-panel">
+            <div class="chart-help-header">
+                <span class="chart-help-title" id="chart-help-title">CHART PREVIEW</span>
+                <button id="chart-help-close" class="chart-help-close" aria-label="Close">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="square">
+                        <path d="M4 4l8 8M12 4l-8 8"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="chart-help-body" id="chart-help-body"></div>
+        </div>
+    </div>
+
+    <script src="js/cursor.js"></script>
+    <script src="js/script.js"></script>
+    <script src="js/chat.js"></script>
+</body>
+</html>

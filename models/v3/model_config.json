@@ -1,0 +1,33 @@
+{
+  "model_file": "xgboost_atraso_v3.pkl",
+  "threshold": 0.34,
+  "features": [
+    "velocidade_lojista_dias",
+    "distancia_haversine_km",
+    "freight_value",
+    "rota_interestadual",
+    "customer_state_encoded",
+    "seller_state_encoded",
+    "volume_cm3",
+    "product_weight_g",
+    "price",
+    "total_itens_pedido",
+    "dia_semana_compra",
+    "prazo_estimado_dias"
+  ],
+  "n_features": 12,
+  "best_params": {
+    "learning_rate": 0.05,
+    "max_depth": 10,
+    "min_child_weight": 3,
+    "n_estimators": 200,
+    "scale_pos_weight": 3
+  },
+  "metrics": {
+    "roc_auc": 0.8303690186611471,
+    "recall": 0.41569167240192706,
+    "precision": 0.37608966376089664,
+    "f1_score": 0.39490029421379536
+  },
+  "version": "v3"
+}

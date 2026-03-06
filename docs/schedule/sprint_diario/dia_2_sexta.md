@@ -21,7 +21,7 @@
     *   Apagam os "dados falsos" que usaram na quinta-feira.
     *   Recebem o CSV totalmente limpo do Henry (Esquadrão Alpha) e conectam o código puramente nesse arquivo real.
     *   **Pablo e Douglas:** Codificam os gráficos gerenciais da Olist na "Tela 1" do App. Se sobrar tempo, formatam visualmente a "Tela 2" (aba de Insights Textuais) para receber as conclusões finais que o Esquadrão Omega for soltando.
-*   **Entregável do Fim do Dia:** As primeiras abas do Dashboard Web oficialmente funcionando e demonstrando a verdade crua do banco de dados na tela, através de gráficos interativos (ECharts/Chart.js).
+*   **Entregável do Fim do Dia:** As primeiras abas do Dashboard Web oficialmente funcionando e demonstrando a verdade crua do banco de dados na tela, através de gráficos interativos (Plotly).
 
 ---
 

@@ -17,23 +17,19 @@
 - `joblib` — Serialização do modelo treinado (exportar `.pkl`)
 
 ## Visualização
-- `ECharts/Chart.js` — Gráficos interativos (barras, dispersão, mapas choropleth) compatíveis com chamadas assíncronas no JS
+## Visualização
+- `plotly` (Python) + `plotly.js` (Frontend) — Gráficos interativos (barras, dispersão, mapas choropleth) no backend e no browser
 
-## Aplicação Web (Frontend)
-- **HTML5 / CSS3 Vanilla** — Sem frameworks pesados (Tailwind só se necessário), foco em Web Design moderno (Glassmorphism, Dark mode).
-- **Vanilla JavaScript** — Lógica de interface, Fetch API para conectar com o backend.
+## Aplicação Web
+- **Frontend:** HTML5, CSS3, Vanilla JavaScript puro
+- **Backend:** FastAPI, Python, Servidor Web Uvicorn
+- **Ferramentas LLM:** Protocolo MCP (Model Context Protocol)
 
-## Backend (API Olist)
-- `fastapi` — Criação da API REST assíncrona super-rápida.
-- `uvicorn` — Servidor ASGI para rodar o FastAPI.
-- `pydantic` — Validação estrita de dados de entrada do frontend.
-
-## Integração Inteligente (IA)
-- **MCP Server (Model Context Protocol)** — Servidor Python para conectar a inteligência do motor de previsão a agentes LLM externos.
+## Ambiente de Desenvolvimento
+- `jupyter` — Notebooks para EDA e experimentação do modelo (Esquadrão Alpha)
 
 ## Deploy
-- **Backend/API:** Render ou Railway (suporte nativo a containers FastAPI/Python).
-- **Frontend:** Vercel ou GitHub Pages (hospedagem de estáticos HTML/JS).
+- **VPS** — Tanto o Frontend HTML quanto o Backend API (FastAPI + MCP) serão hospedados e geridos em um servidor VPS unificado.
 
 ---
 
@@ -45,4 +41,4 @@
 | `causalml` | Uplift Modeling fora do escopo |
 | `nltk` / `spacy` | NLP fora do escopo |
 | `pytest` / `playwright` | Testes automatizados fora do escopo de 4 dias |
-| `streamlit` | Trocado por HTML/JS + FastAPI para maior escalabilidade gráfica e de API |
+| `seaborn` | Padronizamos no `plotly.js` para integração nativa com o Frontend |

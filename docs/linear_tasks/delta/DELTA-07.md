@@ -1,4 +1,4 @@
-# [DELTA-07] Deploy no Render/Railway
+# [DELTA-07] Deploy no Streamlit Community Cloud
 
 **Responsável:** Pablo
 **Dia:** 4 (Domingo)
@@ -9,11 +9,11 @@
 
 ## Descrição
 
-Publicar o Web App na internet via Render/Railway (gratuito) para que a banca/professor acesse pelo navegador, sem precisar instalar nada na máquina.
+Publicar o App Streamlit na internet via Streamlit Community Cloud (gratuito) para que a banca/professor acesse pelo navegador, sem precisar instalar nada na máquina.
 
 ### Passo a Passo
 
-1. Acessar [share.Frontend/FastAPI.io](https://share.Frontend/FastAPI.io) com conta GitHub.
+1. Acessar [share.streamlit.io](https://share.streamlit.io) com conta GitHub.
 2. Apontar para o repositório `Hnry-Gab/data-analytics-mdg5`.
 3. Selecionar a branch `main` e o arquivo `src/app.py`.
 4. Garantir que `requirements.txt` na raiz lista todas as dependências.
@@ -22,7 +22,7 @@ Publicar o Web App na internet via Render/Railway (gratuito) para que a banca/pr
 7. Testar a URL pública no celular e no notebook.
 
 ### Contingência
-Se o Render/Vercel falhar (ex: timeout, erro de memória):
+Se o Streamlit Cloud falhar (ex: timeout, erro de memória):
 - Alternativa 1: Deploy no [Render](https://render.com) (free tier).
 - Alternativa 2: Rodar localmente e demonstrar via compartilhamento de tela.
 
