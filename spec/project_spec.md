@@ -31,7 +31,7 @@ Uma Aplicação Web Streamlit com **3 abas**:
 
 ## Deploy
 
-Streamlit Community Cloud (free tier), vinculado ao repositório GitHub.
+- O deploy do Frontend HTML e da API Backend/MCP será realizado de forma integral via **VPS**.
 
 ---
 

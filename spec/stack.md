@@ -17,17 +17,19 @@
 - `joblib` — Serialização do modelo treinado (exportar `.pkl`)
 
 ## Visualização
-- `plotly` — Gráficos interativos (barras, dispersão, mapas choropleth) compatíveis com Streamlit
+## Visualização
+- `plotly` (Python) + `plotly.js` (Frontend) — Gráficos interativos (barras, dispersão, mapas choropleth) no backend e no browser
 
 ## Aplicação Web
-- `streamlit` — Interface web unificada (Dashboard + Insights + Simulador de Predição)
+- **Frontend:** HTML5, CSS3, Vanilla JavaScript puro
+- **Backend:** FastAPI, Python, Servidor Web Uvicorn
+- **Ferramentas LLM:** Protocolo MCP (Model Context Protocol)
 
 ## Ambiente de Desenvolvimento
 - `jupyter` — Notebooks para EDA e experimentação do modelo (Esquadrão Alpha)
 
 ## Deploy
-- **Streamlit Community Cloud** (free tier)
-- Vinculado diretamente ao repositório GitHub (deploy automático via push na main)
+- **VPS** — Tanto o Frontend HTML quanto o Backend API (FastAPI + MCP) serão hospedados e geridos em um servidor VPS unificado.
 
 ---
 
