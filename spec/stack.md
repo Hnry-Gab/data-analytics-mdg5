@@ -17,7 +17,7 @@
 - `joblib` — Serialização do modelo treinado (exportar `.pkl`)
 
 ## Visualização
-- `ECharts/Chart.js` — Gráficos interativos (barras, dispersão, mapas choropleth) compatíveis com chamadas assíncronas no JS
+- `plotly` (Python) + `plotly.js` (Frontend) — Gráficos interativos (barras, dispersão, mapas choropleth) no backend e no browser
 
 ## Aplicação Web (Frontend)
 - **HTML5 / CSS3 Vanilla** — Sem frameworks pesados (Tailwind só se necessário), foco em Web Design moderno (Glassmorphism, Dark mode).
@@ -32,8 +32,7 @@
 - **MCP Server (Model Context Protocol)** — Servidor Python para conectar a inteligência do motor de previsão a agentes LLM externos.
 
 ## Deploy
-- **Backend/API:** Render ou Railway (suporte nativo a containers FastAPI/Python).
-- **Frontend:** Vercel ou GitHub Pages (hospedagem de estáticos HTML/JS).
+- **VPS** — Tanto o Frontend HTML quanto o Backend API (FastAPI + MCP) serão hospedados e geridos em um servidor VPS unificado.
 
 ---
 

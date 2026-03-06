@@ -6,7 +6,7 @@ Aplicação de Machine Learning focada em **prever atrasos logísticos** no e-co
 
 ## 🎯 Objetivo
 
-Construir uma aplicação web (Streamlit) com 3 abas que permita:
+Construir uma aplicação web (HTML/JS/CSS + FastAPI + MCP) com 3 telas que permita:
 
 1. **Painel Gerencial** — Dashboard interativo com métricas logísticas históricas, filtros por estado/data e mapa de calor do Brasil.
 2. **Insights Valiosos** — Descobertas de negócio sobre os principais ofensores de atraso (rotas, vendedores, categorias).
@@ -54,9 +54,10 @@ Construir uma aplicação web (Streamlit) com 3 abas que permita:
 |:--|:--|
 | Dados | `pandas`, `numpy` |
 | Machine Learning | `scikit-learn`, `xgboost`, `joblib` |
-| Visualização | `plotly` |
-| Aplicação Web | `streamlit` |
-| Deploy | Streamlit Community Cloud |
+| Visualização | `plotly` / `plotly.js` |
+| Aplicação Web (Front) | `HTML5`, `CSS3`, `Vanilla JS` |
+| API / Integração (Back)| `FastAPI`, `MCP Server` |
+| Deploy | VPS |
 
 > Stack completa em [`spec/stack.md`](spec/stack.md)
 
@@ -88,7 +89,7 @@ olist-dataset/
 | Esquadrão | Membros | Foco |
 |:--|:--|:--|
 | 🐺 **Alpha** (Insights & ML) | Mauricio, Henry, Lucas | EDA, Feature Engineering, XGBoost |
-| 🦅 **Delta** (Painel Visual) | Pablo, Douglas | App Streamlit, gráficos Plotly |
+| 🦅 **Delta** (Engenharia) | Pablo, Douglas | Frontend (HTML/JS/CSS), Backend (FastAPI), MCP |
 | 🦉 **Omega** (Negócios) | Anderson, Gabriel | Narrativa, slides, apresentação |
 
 ---
@@ -99,8 +100,11 @@ olist-dataset/
 # Instalar dependências
 pip install -r requirements.txt
 
-# Rodar o Dashboard
-streamlit run app.py
+# Iniciar o Backend (API FastAPI)
+# python src/backend/main.py
+
+# Iniciar o Servidor Frontend
+# python -m http.server 8000 -d src/frontend
 ```
 
 ---

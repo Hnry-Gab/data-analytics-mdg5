@@ -58,7 +58,7 @@ import joblib
 joblib.dump(model, 'models/xgboost_atraso_v1.pkl')
 ```
 
-O Esquadrão Delta (Pablo/Douglas) carregará o `.pkl` no Streamlit para a Aba 3 (Simulador):
+O Esquadrão Delta (Pablo/Douglas) carregará o `.pkl` na API FastAPI para as predições web:
 
 ```python
 model = joblib.load('models/xgboost_atraso_v1.pkl')
@@ -70,5 +70,5 @@ prediction = model.predict_proba(input_data)
 | Cenário | Ação |
 |:--|:--|
 | ROC-AUC < 0.65 | Trocar para Random Forest |
-| Modelo muito lento no Streamlit | Reduzir `n_estimators` para 100 |
-| Deploy Streamlit Cloud falhar | Usar Render como alternativa gratuita |
+| Modelo muito lento na API | Reduzir `n_estimators` para 100 |
+| Problemas no Deploy VPS | Testar APIs locais via ngrok antes do envio |

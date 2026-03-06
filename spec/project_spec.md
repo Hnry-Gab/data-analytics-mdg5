@@ -36,8 +36,7 @@ Uma Aplicação Web Full-Stack dividida em:
 
 ## Deploy
 
-- **Frontend:** GitHub Pages ou Vercel.
-- **Backend/API:** Render ou Railway (free tiers para Python APIs).
+- O deploy do Frontend HTML e da API Backend/MCP será realizado de forma integral via **VPS**.
 
 ---
 
