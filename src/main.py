@@ -144,6 +144,14 @@ async def root():
             content={"error": "Index.html não encontrado na pasta frontend!"}
         )
 
+# Servir favicon.svg explicitamente
+@app.get("/favicon.svg", include_in_schema=False)
+async def favicon():
+    fav_file = static_path / "favicon.svg"
+    if fav_file.exists():
+        return FileResponse(fav_file)
+    return JSONResponse(status_code=404, content={"error": "Favicon não encontrado"})
+
 # Executar aplicação (apenas para desenvolvimento)
 if __name__ == "__main__":
     uvicorn.run(
