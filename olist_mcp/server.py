@@ -2,6 +2,8 @@
 
 from fastmcp import FastMCP
 
+from olist_mcp.tools import dataset_stats
+
 mcp = FastMCP(
     name="olist-analytics-mcp",
     instructions=(
@@ -11,6 +13,9 @@ mcp = FastMCP(
         "documentation, visualization, and data querying."
     ),
 )
+
+# Register tool modules
+dataset_stats.register(mcp)
 
 if __name__ == "__main__":
     mcp.run()
