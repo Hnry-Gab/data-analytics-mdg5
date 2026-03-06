@@ -1,37 +1,32 @@
-# Imagem base mais fina do Python 3.10
+# Usar imagem leve do Python
 FROM python:3.10-slim
 
-# Definir diretório de trabalho principal da aplicação
+# Evitar que o Python gere arquivos .pyc e garantir logs em tempo real
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED 1
+
+# Definir diretório de trabalho
 WORKDIR /app
 
-# Variáveis de ambiente para o Python otimizado em contêiner
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-# Instala dependências do sistema necessárias para o catboost e fastapi
-RUN apt-get update && apt-get install -y \
+# Instalar dependências de sistema necessárias
+RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar apenas os requerimentos primeiro para usar cache do Docker
+# Copiar requirements e instalar dependências Python
 COPY requirements.txt .
-
-# Instalar dependências da aplicação
-# Ignoramos dependências de análise de dados pesadas ou jupyter em produção
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copiar todo o resto da base de código necessária para execução
-# Excluímos (.dockerignore resolverá pastas inúteis como spec/ e notebooks/)
-COPY src/ /app/src/
-COPY frontend/ /app/frontend/
-COPY models/v5/ /app/models/v5/
-COPY dataset/processed/ /app/dataset/processed/
+# Copiar o código da aplicação e arquivos estáticos
+COPY src/ ./src/
+COPY frontend/ ./frontend/
+COPY dataset/ ./dataset/
+COPY models/ ./models/
+COPY run_backend.py .
 
-# Criar o arquivo de ambiente em branco (caso não seja passado, o app roda com defaults do config.py)
-RUN touch .env
-
-# Expor a porta que a API usará internamente
+# Expor a porta que o FastAPI usará
 EXPOSE 8000
 
-# Comando para iniciar o servidor via Uvicorn (focado em produção, portanto workers podem ser adicionados)
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Comando para rodar a aplicação em produção
+# Usamos workers para melhor performance
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]

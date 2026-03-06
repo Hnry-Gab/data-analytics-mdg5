@@ -1,37 +1,28 @@
 name: Deploy to VPS
 
-# Gatilho: Quando fizer push ou mesclar Pull Requests na main
 on:
   push:
     branches:
       - main
-  workflow_dispatch: # Permite rodar manualmente na aba Actions no GitHub
+      - feature/integracao-final
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v0.1.10
+      - name: Deploy to VPS via SSH
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          # Usamos chave SSH privada criptografada pra conectar sem pedir senha
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            # Entra na pasta do seu projeto. Caso não exista será o erro, garanta que ela exista na VPS
+            cd ~/olist-dataset || git clone https://github.com/Hnry-Gab/data-analytics-mdg5.git ~/olist-dataset
             cd ~/olist-dataset
-            
-            # Puxa o código recém autorizado da main
-            git pull origin main
-            
-            # Reconstrói a imagem e reinicia a aplicação via Docker sem downtime demorado
-            docker-compose pull || true
-            docker-compose up -d --build
-            
-            # (Opcional) Limpa as imagens antigas do docker do Linux que ficaram órfãs (economiza HD)
-            docker image prune -f
+            git pull origin feature/integracao-final
+            docker compose down
+            docker compose up -d --build
+            docker system prune -f
