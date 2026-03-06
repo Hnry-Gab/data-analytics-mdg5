@@ -19,9 +19,10 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd ~/olist-dataset || git clone https://github.com/Hnry-Gab/data-analytics-mdg5.git ~/olist-dataset
-            cd ~/olist-dataset
+            if [ ! -d "$HOME/olist-dataset" ]; then git clone https://github.com/Hnry-Gab/data-analytics-mdg5.git $HOME/olist-dataset; fi
+            cd $HOME/olist-dataset
+            git config --global --add safe.directory $HOME/olist-dataset
             git pull origin main
-            docker compose down
-            docker compose up -d --build
+            docker-compose down || true
+            docker-compose up -d --build
             docker system prune -f
