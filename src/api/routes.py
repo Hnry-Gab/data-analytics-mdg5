@@ -28,53 +28,36 @@ router = APIRouter(prefix="/api", tags=["Predição de Atraso"])
     response_model=PredictionOutput,
     status_code=status.HTTP_200_OK,
     summary="Prever atraso de entrega",
-    description="Prediz a probabilidade de atraso de um pedido com base nas características fornecidas"
+    description="Prediz a probabilidade de atraso de um pedido usando CatBoost V5"
 )
 async def predict_delay(pedido: PedidoInput) -> PredictionOutput:
-    """
-    Endpoint principal de predição de atraso
-
-    **Entrada:**
-    - CEP cliente e vendedor
-    - Categoria do produto
-    - Peso, frete e volume
-
-    **Saída:**
-    - Probabilidade de atraso (0-100%)
-    - Classe de predição (No Prazo / Atrasado)
-    - Confiança da predição
-    - Features utilizadas
-
-    **Erros possíveis:**
-    - 400: Dados de entrada inválidos
-    - 503: Modelo não carregado
-    - 500: Erro interno na predição
-    """
     try:
-        logger.info(f"Nova predição solicitada para categoria: {pedido.categoria_produto}")
+        logger.info(f"Nova predição V5 solicitada via API p/ rota {pedido.cep_vendedor}->{pedido.cep_cliente}!")
 
-        # 1. Processar features
-        features_array = process_features(pedido)
+        # 1. Obter DataFrame de teste c/ 19 features rigorosas
+        features_df = process_features(pedido)
+        
+        # Obter dicionário cru p/ response
         features_dict = get_features_dict(pedido)
 
-        # 2. Invocar modelo XGBoost
-        prob_atraso = ml_model.predict_proba(features_array)
-        prob_percent = prob_atraso * 100
-
-        # 3. Determinar classe e confiança
-        classe = "Atrasado" if prob_percent > 50 else "No Prazo"
-        confianca = max(prob_atraso, 1 - prob_atraso) * 100
+        # 2. Invocar Modelo C++ Nativo (CatBoost) -> (prob, confianca_bruta, classe_str)
+        prob, conf_bruta, classe = ml_model.predict_proba(features_df)
+        
+        # 3. Formatar saída percentual
+        prob_percent = prob * 100
+        confianca = conf_bruta * 100
+        limiar = ml_model._config.get('threshold', 0.5) * 100
 
         logger.info(
             f"Predição concluída: {classe} "
-            f"(probabilidade: {prob_percent:.2f}%, confiança: {confianca:.2f}%)"
+            f"(probabilidade: {prob_percent:.2f}%)"
         )
 
-        # 4. Retornar resultado
         return PredictionOutput(
             probabilidade_atraso=round(prob_percent, 2),
             classe_predicao=classe,
             confianca=round(confianca, 2),
+            limiar_corte=round(limiar, 2),
             features_utilizadas=features_dict
         )
 
@@ -112,55 +95,98 @@ async def predict_delay(pedido: PedidoInput) -> PredictionOutput:
     response_model=FeaturesResponse,
     status_code=status.HTTP_200_OK,
     summary="Listar features aceitas",
-    description="Retorna a lista de features necessárias para realizar uma predição"
+    description="Retorna a lista de chaves JSON necessárias na predição V5"
 )
 async def get_available_features() -> FeaturesResponse:
-    """
-    Lista todas as features de entrada aceitas pela API
-
-    **Saída:**
-    - Lista de nomes de features
-    - Descrição do uso
-    """
     logger.debug("Listando features disponíveis")
-
     return FeaturesResponse(
         features=[
-            "cep_cliente",
-            "cep_vendedor",
-            "categoria_produto",
-            "peso_produto_kg",
-            "preco_frete",
-            "peso_produto_volume_cm3"
+            "cep_cliente", "cep_vendedor", "categoria_produto", "peso_produto_g",
+            "preco_produto", "preco_frete", "volume_cm3", "total_itens_pedido",
+            "prazo_estimado_dias", "velocidade_lojista_dias", "historico_atraso_vendedor",
+            "qtd_pedidos_anteriores_vendedor", "data_aprovacao"
         ],
-        description="Features obrigatórias para predição de atraso. "
-                    "Todas devem ser fornecidas no endpoint /api/predict"
+        description="Payload obrigatório p/ endpoints preditivos do V5"
     )
 
+@router.get(
+    "/stats",
+    status_code=status.HTTP_200_OK,
+    summary="Obter estatísticas filtradas do Dashboard"
+)
+async def get_dashboard_stats(state: str = None, year: int = None):
+    """Retorna KPIs e dados para gráficos filtrados por estado e ano."""
+    if not data_loader.is_loaded() or data_loader._data is None:
+        return {"error": "Dataset não carregado."}
+
+    df = data_loader._data.copy()
+    target_col = "delivery_delayed"
+    
+    # 1. Aplicar Filtros
+    if state:
+        df = df[df['customer_state'] == state]
+    if year:
+        df = df[df['purchase_year'] == year]
+
+    total_orders = len(df)
+    if total_orders == 0:
+        return {
+            "total_orders": 0, "delayed_orders": 0, "delay_rate": 0, "avg_freight": 0,
+            "map_data": {}, "ranking_data": [], "timeline_data": {"x": [], "y": []}
+        }
+
+    # 2. KPIs
+    delayed_orders = int(df[target_col].sum())
+    avg_freight = float(df['freight_value'].mean())
+    delay_rate = round((delayed_orders / total_orders * 100), 1)
+    # Média de Delta Dias
+    avg_delta = float(df['delta_days'].mean()) if 'delta_days' in df.columns else 0.0
+
+    # 2.1 Média Global (Ignorando Filtro de Estado, respeitando apenas Ano)
+    df_global = data_loader._data.copy()
+    if year:
+        df_global = df_global[df_global['purchase_year'] == year]
+    global_delay_rate = round((df_global[target_col].sum() / len(df_global) * 100), 1) if len(df_global) > 0 else 0
+
+    # 3. Dados para o Mapa
+    map_df = df.groupby('customer_state')[target_col].mean() * 100
+    map_data = map_df.to_dict()
+
+    # 4. Ranking
+    rank_df = df.groupby('customer_state')[target_col].mean().sort_values(ascending=False).head(10) * 100
+    ranking_data = [{"state": s, "rate": round(r, 1)} for s, r in rank_df.items()]
+
+    # 5. Timeline
+    df['month_year'] = df['order_purchase_timestamp'].dt.to_period('M').astype(str)
+    timeline_df = df.groupby('month_year')[target_col].mean().sort_index() * 100
+    timeline_data = {
+        "x": timeline_df.index.tolist(),
+        "y": [round(v, 1) for v in timeline_df.values]
+    }
+
+    return {
+        "total_orders": total_orders,
+        "delayed_orders": delayed_orders,
+        "delay_rate": delay_rate,
+        "global_delay_rate": global_delay_rate,
+        "avg_freight": round(avg_freight, 2),
+        "delta_days": round(avg_delta, 1),
+        "map_data": map_data,
+        "ranking_data": ranking_data,
+        "timeline_data": timeline_data
+    }
 
 @router.get(
     "/health",
     response_model=HealthResponse,
     status_code=status.HTTP_200_OK,
-    summary="Verificar status da API",
-    description="Health check para verificar se o modelo e dados estão carregados"
+    summary="Verificar status da API"
 )
 async def health_check() -> HealthResponse:
-    """
-    Health check da aplicação
-
-    **Saída:**
-    - Status geral (healthy/unhealthy)
-    - Se modelo ML está carregado
-    - Se dados históricos estão carregados
-    """
     model_loaded = ml_model.is_loaded()
     data_loaded = data_loader.is_loaded()
 
-    # Status é healthy se pelo menos o modelo estiver carregado
-    # (dados históricos são opcionais)
     is_healthy = model_loaded
-
     status_str = "healthy" if is_healthy else "unhealthy"
 
     logger.info(

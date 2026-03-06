@@ -142,7 +142,7 @@ const I18N = {
         "radar.sellerSpd":    "Seller Spd",
         "radar.interstate":   "Interstate",
         // Footer
-        "footer.text":        "Olist Logistics Intelligence — Academic project · FIAP 2025",
+        "footer.text":        "Olist Logistics Intelligence — Academic project · ALPHA EDTECH 2025",
         // Chat
         "chat.title":         "OLIST AI",
         "chat.status":        "// online",
@@ -260,7 +260,7 @@ const I18N = {
         "radar.fRatio":       "Razão F.",
         "radar.sellerSpd":    "Vel. Vendedor",
         "radar.interstate":   "Interestadual",
-        "footer.text":        "Olist Inteligência Logística — Projeto acadêmico · FIAP 2025",
+        "footer.text":        "Olist Inteligência Logística — Projeto acadêmico · ALPHA EDTECH 2025",
         // Chat
         "chat.title":         "OLIST IA",
         "chat.status":        "// online",
@@ -404,6 +404,12 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }, 200);
     });
+
+    // Filtros do Dashboard
+    const stateFilter = document.getElementById("dash-state-filter");
+    const periodFilter = document.getElementById("dash-period-filter");
+    if (stateFilter) stateFilter.addEventListener("change", handleDashboardFilterChange);
+    if (periodFilter) periodFilter.addEventListener("change", handleDashboardFilterChange);
 
     // ── Chart Help: inject ? buttons & wire overlay ────────────────────
     initChartHelp();
@@ -623,21 +629,73 @@ document.head.appendChild(revealStyle);
 /* TAB 1: DASHBOARD                                                      */
 /* ═══════════════════════════════════════════════════════════════════════ */
 
-function initDashboard() {
-    updateKPIs({
-        orders: 96461,
-        delayed: 6535,
-        rate: 6.77,
-        avgFreight: 19.99,
-        deltaDays: -8.7,
-    });
+async function initDashboard(state = "", year = "") {
+    try {
+        let url = `/api/stats`;
+        const params = [];
+        if (state) params.push(`state=${state}`);
+        if (year && year !== "all") params.push(`year=${year}`);
+        if (params.length > 0) url += "?" + params.join("&");
 
-    renderGaugeDelay(6.77);
-    renderGaugeFreight(19.99);
-    renderMap();
-    renderRanking();
-    renderTimeline();
-    renderScatter();
+        const res = await fetch(url);
+        if (res.ok) {
+            const data = await res.json();
+            
+            // Controle de Layout Dinâmico (Mapa + Ranking)
+            const geoGrid = document.getElementById("dash-geo-grid");
+            const rankCard = document.getElementById("dash-rank-card");
+            const stateBadge = document.getElementById("dash-state-badge");
+            
+            if (state) {
+                // Estado Selecionado: Ocultar Ranking e expandir Mapa
+                geoGrid.classList.add("is-filtered");
+                rankCard.style.display = "none";
+                
+                // Mostrar Badge no Header do Mapa
+                const statePct = data.map_data[state] || 0;
+                stateBadge.textContent = `${state}: ${statePct.toFixed(1)}%`;
+                stateBadge.style.display = "inline-flex";
+
+                // Comparação com a média global (do ano selecionado)
+                if (statePct > data.global_delay_rate) {
+                    stateBadge.classList.add("state-badge--alert");
+                } else {
+                    stateBadge.classList.remove("state-badge--alert");
+                }
+            } else {
+                // Global: Mostrar Ranking e resetar Mapa
+                geoGrid.classList.remove("is-filtered");
+                rankCard.style.display = "block";
+                stateBadge.style.display = "none";
+                renderRanking(data.ranking_data);
+            }
+
+            updateKPIs({
+                orders: data.total_orders,
+                delayed: data.delayed_orders,
+                rate: data.delay_rate,
+                avgFreight: data.avg_freight,
+                deltaDays: data.delta_days, 
+            });
+
+            renderGaugeDelay(data.delay_rate);
+            renderGaugeFreight(data.avg_freight);
+            
+            // O mapa deve ser sempre renderizado (com os dados filtrados ou globais)
+            renderMap(data.map_data);
+            renderTimeline(data.timeline_data);
+            renderScatter(); 
+        }
+    } catch (e) {
+        console.error("Falha ao carregar dashboard", e);
+    }
+}
+
+// Handler para mudança nos filtros do Dashboard
+function handleDashboardFilterChange() {
+    const state = document.getElementById("dash-state-filter").value;
+    const year = document.getElementById("dash-period-filter").value;
+    initDashboard(state, year);
 }
 
 function updateKPIs(d) {
@@ -689,41 +747,62 @@ function renderGaugeFreight(avg) {
 
 /* ── Map ──────────────────────────────────────────────────────────────── */
 
-function renderMap() {
-    const states = ["SP","RJ","MG","RS","PR","BA","SC","GO","PE","CE","PA","MA","MT","MS","ES","PB","RN","AL","PI","SE","RO","TO","AM","AC","AP","RR","DF"];
-    const rates  = [5.2,7.8,6.1,4.9,5.0,9.3,4.2,7.1,8.5,8.9,10.2,11.4,8.0,7.2,6.5,9.0,8.7,9.8,10.5,8.2,11.0,9.5,12.1,13.5,12.8,14.0,5.8];
+function renderMap(mapData = {}) {
+    const states = Object.keys(mapData);
+    const rates  = Object.values(mapData);
+
+    if (states.length === 0) {
+        // Fallback global se vazio por erro
+        return;
+    }
 
     Plotly.newPlot("dash-map", [{
         type: "choropleth",
         geojson: "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson",
         locations: states, featureidkey: "properties.sigla", z: rates,
-        colorscale: [[0, "#0a0a0a"], [0.35, "#0a0a2e"], [0.65, "#00003a"], [1, ALERT]],
+        zmin: 0, zmax: 40, // Escala fixa nacional (máximo esperado ~35-40%)
+        autocolorscale: false,
+        colorscale: [
+            [0, "#0a0a0a"],   // 0% - Preto
+            [0.1, "#0a0a2e"], // 4% - Azul bem escuro
+            [0.25, "#000066"], // 10% - Azul profundo
+            [0.4, "#440044"],  // 16% - Roxo (transição)
+            [0.6, ALERT],      // 24% - Vermelho (AL está aqui)
+            [1.0, "#FF4D4D"]   // 40% - Vermelho mais claro
+        ],
         colorbar: {
             bgcolor: "rgba(0,0,0,0)", borderwidth: 0,
             tickfont: { color: DIM }, title: { text: t("map.delayPct"), font: { color: DIM } },
+            len: 0.8, thickness: 15
         },
         hovertemplate: "%{location}: %{z:.1f}%<extra></extra>",
     }], {
         ...PLOTLY_BASE, height: pH(520), margin: { l: 0, r: 0, t: 0, b: 0 },
-        geo: { scope: "south america", fitbounds: "locations", visible: false, bgcolor: "rgba(0,0,0,0)" },
+        geo: { 
+            scope: "south america", 
+            fitbounds: "locations", 
+            visible: false, 
+            bgcolor: "rgba(0,0,0,0)",
+            projection: { type: "mercator" }
+        },
     }, PLOTLY_CFG);
 }
 
 /* ── Ranking ──────────────────────────────────────────────────────────── */
 
-function renderRanking() {
-    const states = ["RR","AC","AP","AM","MA","RO","PA","PI","AL","TO"];
-    const rates  = [14.0,13.5,12.8,12.1,11.4,11.0,10.2,10.5,9.8,9.5];
+function renderRanking(rankingData = []) {
     const traces = [];
 
-    states.forEach((s, i) => {
+    rankingData.forEach((item, i) => {
+        const s = item.state;
+        const r = item.rate;
         traces.push({
-            x: [0, rates[i]], y: [s, s], mode: "lines",
+            x: [0, r], y: [s, s], mode: "lines",
             line: { color: i === 0 ? ALERT : FAINT, width: 2 },
             showlegend: false, hoverinfo: "skip",
         });
         traces.push({
-            x: [rates[i]], y: [s], mode: "markers",
+            x: [r], y: [s], mode: "markers",
             marker: { size: 10, color: i === 0 ? ALERT : LIME, symbol: "circle" },
             showlegend: false,
             hovertemplate: `${s}: %{x:.1f}%<extra></extra>`,
@@ -739,18 +818,9 @@ function renderRanking() {
 
 /* ── Timeline ─────────────────────────────────────────────────────────── */
 
-function renderTimeline() {
-    const months = [
-        "2016-09","2016-10","2016-11","2016-12",
-        "2017-01","2017-02","2017-03","2017-04","2017-05","2017-06",
-        "2017-07","2017-08","2017-09","2017-10","2017-11","2017-12",
-        "2018-01","2018-02","2018-03","2018-04","2018-05","2018-06",
-        "2018-07","2018-08","2018-09","2018-10",
-    ];
-    const rates = [8.2,7.5,6.9,8.1,7.3,6.8,7.0,6.5,6.2,5.8,5.5,5.9,6.3,7.1,7.8,8.5,7.2,6.4,5.9,5.7,5.4,5.1,5.6,6.0,6.8,7.5];
-
+function renderTimeline(timelineData = {x: [], y: []}) {
     Plotly.newPlot("dash-timeline", [{
-        x: months, y: rates, type: "scatter", mode: "lines",
+        x: timelineData.x, y: timelineData.y, type: "scatter", mode: "lines",
         fill: "tozeroy",
         fillcolor: "rgba(0, 0, 255, 0.04)",
         line: { color: LIME, width: 2, shape: "spline" },
@@ -910,129 +980,167 @@ function initPredictor() {
     document.getElementById("pred-submit").addEventListener("click", runPrediction);
 }
 
-function runPrediction() {
-    const origin     = document.getElementById("pred-origin").value;
-    const dest       = document.getElementById("pred-dest").value;
-    const weight     = parseFloat(document.getElementById("pred-weight").value) || 0;
-    const price      = parseFloat(document.getElementById("pred-price").value) || 0;
-    const volume     = parseFloat(document.getElementById("pred-volume").value) || 0;
-    const freight    = parseFloat(document.getElementById("pred-freight").value) || 0;
-    const sellerDays = parseInt(document.getElementById("pred-seller-days").value) || 0;
-    const dayIdx     = parseInt(document.getElementById("pred-day").value) || 0;
+async function runPrediction() {
+    const btn = document.getElementById("pred-submit");
+    const originalText = btn.textContent;
+    btn.textContent = "Processing...";
+    btn.disabled = true;
 
-    const interstate = origin !== dest ? 1 : 0;
-    const ratio      = price > 0 ? freight / price : 0;
+    try {
+        const originCep  = document.getElementById("pred-origin-cep").value || "01001000";
+        const destCep    = document.getElementById("pred-dest-cep").value || "20000000";
+        const category   = document.getElementById("pred-category").value || "beleza_saude";
+        const weight     = parseFloat(document.getElementById("pred-weight").value) || 1000;
+        const price      = parseFloat(document.getElementById("pred-price").value) || 50.0;
+        const volume     = parseFloat(document.getElementById("pred-volume").value) || 2000;
+        const freight    = parseFloat(document.getElementById("pred-freight").value) || 15.0;
+        const items      = parseInt(document.getElementById("pred-items").value) || 1;
+        const estDays    = parseFloat(document.getElementById("pred-estimated-days").value) || 10;
+        const sellerDays = parseFloat(document.getElementById("pred-seller-days").value) || 2.0;
+        const sellerHist = parseFloat(document.getElementById("pred-seller-history").value) || 0.05;
+        const sellerOrd  = parseInt(document.getElementById("pred-seller-orders").value) || 50;
 
-    const features = {
-        product_weight_g: weight,
-        price: price,
-        freight_value: freight,
-        volume_cm3: volume,
-        frete_ratio: Math.round(ratio * 10000) / 10000,
-        velocidade_lojista_dias: sellerDays,
-        dia_semana_compra: dayIdx,
-        rota_interestadual: interstate,
-    };
+        const payload = {
+            cep_cliente: destCep,
+            cep_vendedor: originCep,
+            categoria_produto: category,
+            peso_produto_g: weight,
+            preco_produto: price,
+            preco_frete: freight,
+            volume_cm3: volume,
+            total_itens_pedido: items,
+            prazo_estimado_dias: estDays,
+            velocidade_lojista_dias: sellerDays,
+            historico_atraso_vendedor: sellerHist,
+            qtd_pedidos_anteriores_vendedor: sellerOrd,
+            data_aprovacao: new Date().toISOString()
+        };
 
-    // Mock scoring
-    const prob = Math.min((interstate * 0.3) + (sellerDays * 0.05) + (ratio * 0.1), 0.95);
+        const res = await fetch("/api/predict", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        });
 
-    let color, label;
-    if (prob >= 0.5)      { color = ALERT; label = t("pred.highRisk"); }
-    else if (prob >= 0.2) { color = MUTED; label = t("pred.moderate"); }
-    else                  { color = LIME;  label = t("pred.lowRisk"); }
-
-    const resultDiv = document.getElementById("pred-result");
-
-    resultDiv.innerHTML = `
-        <div class="risk-result">
-            <div class="glass-card chart-card">
-                <div id="pred-gauge"></div>
-            </div>
-            <div class="glass-card chart-card">
-                <div class="chart-label">${t("pred.featureProfile")}</div>
-                <div id="pred-radar"></div>
-            </div>
-        </div>
-    `;
-
-    // Defer Plotly rendering to next frame so CSS grid stretch is applied
-    // and we can measure the real available height in each card.
-    requestAnimationFrame(() => {
-        const gaugeCard = document.getElementById("pred-gauge").parentElement;
-        const radarCard = document.getElementById("pred-radar").parentElement;
-
-        const pad = 48; // 24px top + 24px bottom
-        const gaugeH = Math.max(140, Math.round(gaugeCard.getBoundingClientRect().height - pad));
-        const radarLabelH = radarCard.querySelector(".chart-label")?.offsetHeight || 0;
-        const radarH = Math.max(140, Math.round(radarCard.getBoundingClientRect().height - pad - radarLabelH));
-
-        // Gauge
-        Plotly.newPlot("pred-gauge", [{
-            type: "indicator", mode: "gauge+number", value: prob * 100,
-            number: { suffix: "%", font: { family: "Space Grotesk", size: pH(56), color: color } },
-            title: { text: label, font: { family: "IBM Plex Mono", size: pH(12), color: color } },
-            gauge: {
-                axis: { range: [0, 100], tickfont: { color: DIM, size: pH(10) }, tickcolor: FAINT, dtick: 20 },
-                bar: { color: color, thickness: 0.75 },
-                bgcolor: "#111111", borderwidth: 0,
-                steps: [
-                    { range: [0, 20], color: "#0d0d0d" },
-                    { range: [20, 50], color: "#161616" },
-                    { range: [50, 100], color: "#1a1118" },
-                ],
-                threshold: { line: { color: WHITE, width: 2 }, thickness: 0.85, value: prob * 100 },
-            },
-        }], { ...PLOTLY_BASE, height: gaugeH, margin: { l: 30, r: 30, t: 50, b: 10 } }, PLOTLY_CFG);
-
-        // Radar
-        const cats = [t("radar.weight"), t("radar.price"), t("radar.freight"), t("radar.volume"), t("radar.fRatio"), t("radar.sellerSpd"), t("radar.interstate")];
-        const maxV = [30000, 2000, 200, 100000, 2, 15, 1];
-        const raw  = [weight, price, freight, volume, ratio, sellerDays, interstate];
-        const norm = raw.map((v, i) => Math.min(v / maxV[i], 1.0));
-        norm.push(norm[0]);
-        const catsC = [...cats, cats[0]];
-
-        Plotly.newPlot("pred-radar", [{
-            type: "scatterpolar", r: norm, theta: catsC, fill: "toself",
-            fillcolor: "rgba(0, 0, 255, 0.08)",
-            line: { color: LIME, width: 2 },
-            marker: { size: 5, color: CYAN },
-            hovertemplate: "%{theta}: %{r:.2f}<extra></extra>",
-        }], {
-            ...PLOTLY_BASE, height: radarH, margin: { l: 60, r: 60, t: 20, b: 20 },
-            polar: {
-                bgcolor: "rgba(0,0,0,0)",
-                angularaxis: { gridcolor: FAINT, linecolor: FAINT },
-                radialaxis: { gridcolor: FAINT, linecolor: FAINT, range: [0, 1], showticklabels: false },
-            },
-            showlegend: false,
-        }, PLOTLY_CFG);
-
-        // Inject ? buttons into dynamically created predictor chart cards
-        if (window.reinjectChartHelp) window.reinjectChartHelp();
-
-        // Recommendations (full-width below both columns)
-        const recs = [];
-        if (interstate)     recs.push(t("pred.recInterstate"));
-        if (sellerDays > 5) recs.push(t("pred.recSeller", { days: sellerDays }));
-        if (ratio > 0.5)    recs.push(t("pred.recFreight"));
-
-        const recsDiv = document.getElementById("pred-recommendations");
-        if (recs.length === 0) {
-            recsDiv.style.display = "none";
-        } else {
-            recsDiv.style.display = "";
-            recsDiv.innerHTML = `
-                <div class="glass-card" style="padding:24px">
-                    <div class="chart-label">${t("pred.recActions")}</div>
-                    <div style="margin-top:12px">
-                        ${recs.map((r, i) => `<div class="rec-card${i === 0 ? ' primary' : ''}"><p>${r}</p></div>`).join("")}
-                    </div>
-                </div>
-            `;
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || "API Error");
         }
-    });
+
+        const data = await res.json();
+        
+        // Dados Retornados da API V5
+        const prob = data.probabilidade_atraso / 100.0;
+        const limiar = (data.limiar_corte || 54.0) / 100.0;
+        const ratio = freight / (price || 1);
+        const interstate = data.features_utilizadas.seller_state !== data.features_utilizadas.customer_state ? 1 : 0;
+
+        let color, label;
+        if (prob >= limiar) { 
+            color = ALERT; 
+            label = t("pred.highRisk"); 
+        } else if (prob >= (limiar * 0.5)) { 
+            color = MUTED; 
+            label = t("pred.moderate"); 
+        } else { 
+            color = LIME;  
+            label = t("pred.lowRisk"); 
+        }
+
+        const resultDiv = document.getElementById("pred-result");
+
+        resultDiv.innerHTML = `
+            <div class="risk-result">
+                <div class="glass-card chart-card">
+                    <div id="pred-gauge"></div>
+                </div>
+                <div class="glass-card chart-card">
+                    <div class="chart-label">${t("pred.featureProfile")}</div>
+                    <div id="pred-radar"></div>
+                </div>
+            </div>
+        `;
+
+        requestAnimationFrame(() => {
+            const gaugeCard = document.getElementById("pred-gauge").parentElement;
+            const radarCard = document.getElementById("pred-radar").parentElement;
+
+            const pad = 48;
+            const gaugeH = Math.max(140, Math.round(gaugeCard.getBoundingClientRect().height - pad));
+            const radarLabelH = radarCard.querySelector(".chart-label")?.offsetHeight || 0;
+            const radarH = Math.max(140, Math.round(radarCard.getBoundingClientRect().height - pad - radarLabelH));
+
+            // Gauge (Usando o Limiar do CatBoost)
+            Plotly.newPlot("pred-gauge", [{
+                type: "indicator", mode: "gauge+number", value: data.probabilidade_atraso,
+                number: { suffix: "%", font: { family: "Space Grotesk", size: pH(56), color: color } },
+                title: { text: label, font: { family: "IBM Plex Mono", size: pH(12), color: color } },
+                gauge: {
+                    axis: { range: [0, 100], tickfont: { color: DIM, size: pH(10) }, tickcolor: FAINT, dtick: 20 },
+                    bar: { color: color, thickness: 0.75 },
+                    bgcolor: "#111111", borderwidth: 0,
+                    steps: [
+                        { range: [0, data.limiar_corte], color: "#0d0d0d" },
+                        { range: [data.limiar_corte, 100], color: "#1a1118" },
+                    ],
+                    threshold: { line: { color: WHITE, width: 2 }, thickness: 0.85, value: data.probabilidade_atraso },
+                },
+            }], { ...PLOTLY_BASE, height: gaugeH, margin: { l: 30, r: 30, t: 50, b: 10 } }, PLOTLY_CFG);
+
+            // Radar com base nos dados do Form
+            const cats = [t("radar.weight"), t("radar.price"), t("radar.freight"), t("radar.volume"), t("radar.fRatio"), t("radar.sellerSpd"), t("radar.interstate")];
+            const maxV = [30000, 2000, 200, 100000, 2, 15, 1];
+            const raw  = [weight, price, freight, volume, ratio, sellerDays, interstate];
+            const norm = raw.map((v, i) => Math.min(v / maxV[i], 1.0));
+            norm.push(norm[0]);
+            const catsC = [...cats, cats[0]];
+
+            Plotly.newPlot("pred-radar", [{
+                type: "scatterpolar", r: norm, theta: catsC, fill: "toself",
+                fillcolor: "rgba(0, 0, 255, 0.08)",
+                line: { color: LIME, width: 2 },
+                marker: { size: 5, color: CYAN },
+                hovertemplate: "%{theta}: %{r:.2f}<extra></extra>",
+            }], {
+                ...PLOTLY_BASE, height: radarH, margin: { l: 60, r: 60, t: 20, b: 20 },
+                polar: {
+                    bgcolor: "rgba(0,0,0,0)",
+                    angularaxis: { gridcolor: FAINT, linecolor: FAINT },
+                    radialaxis: { gridcolor: FAINT, linecolor: FAINT, range: [0, 1], showticklabels: false },
+                },
+                showlegend: false,
+            }, PLOTLY_CFG);
+
+            if (window.reinjectChartHelp) window.reinjectChartHelp();
+
+            // Recommendations 
+            const recs = [];
+            if (interstate)     recs.push(t("pred.recInterstate"));
+            if (sellerDays > 5) recs.push(t("pred.recSeller", { days: sellerDays }));
+            if (ratio > 0.5)    recs.push(t("pred.recFreight"));
+
+            const recsDiv = document.getElementById("pred-recommendations");
+            if (recs.length === 0) {
+                recsDiv.style.display = "none";
+            } else {
+                recsDiv.style.display = "";
+                recsDiv.innerHTML = `
+                    <div class="glass-card" style="padding:24px">
+                        <div class="chart-label">${t("pred.recActions")}</div>
+                        <div style="margin-top:12px">
+                            ${recs.map((r, i) => `<div class="rec-card${i === 0 ? ' primary' : ''}"><p>${r}</p></div>`).join("")}
+                        </div>
+                    </div>
+                `;
+            }
+        });
+    } catch (err) {
+        console.error(err);
+        alert("Ops! Falha na predição: " + err.message);
+    } finally {
+        btn.textContent = originalText;
+        btn.disabled = false;
+    }
 }
 
 /* ── Utilities ───────────────────────────────────────────────────────── */

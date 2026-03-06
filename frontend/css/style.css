@@ -71,10 +71,12 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
-    cursor: none;
 }
 
-a, button, select, input { cursor: none; }
+/* Nuke total em qualquer cursor nativo do sistema — Garante latência zero e design limpo */
+html, body, *, *::before, *::after {
+    cursor: none !important;
+}
 
 /* ── Grain Overlay ───────────────────────────────────────────────────── */
 
@@ -691,6 +693,7 @@ a, button, select, input { cursor: none; }
     background: rgba(0, 240, 255, 0.03);
 }
 
+
 /* ── Grid Layouts ────────────────────────────────────────────────────── */
 
 .grid-2 {
@@ -711,13 +714,40 @@ a, button, select, input { cursor: none; }
     grid-template-columns: 1.8fr 1fr;
     gap: 12px;
     margin-bottom: 24px;
+    transition: grid-template-columns 0.4s var(--ease);
+}
+
+.grid-asymmetric.is-filtered {
+    grid-template-columns: 1fr;
 }
 
 .grid-asymmetric > .glass-card {
     border: 1px solid var(--border);
 }
 
-.grid-asymmetric > .glass-card:last-child { border: 1px solid var(--border); }
+/* State Badge in Chart Header */
+.state-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-pill);
+    color: var(--white);
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    font-weight: 700;
+    margin-left: 12px;
+    letter-spacing: 0;
+    box-shadow: 0 0 10px var(--accent-glow);
+    animation: fadeIn 0.3s var(--ease);
+}
+
+.state-badge--alert {
+    background: var(--alert-glow);
+    border-color: var(--alert);
+    box-shadow: 0 0 10px var(--alert-glow);
+}
 
 /* ── Insight Sections ────────────────────────────────────────────────── */
 
@@ -850,9 +880,13 @@ a, button, select, input { cursor: none; }
     padding: 32px;
     border-radius: var(--radius-md);
     border: 1px solid var(--border);
-    background: rgba(255, 255, 255, 0.025);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background: rgba(13, 13, 13, 0.95);
+    transition: background 0.3s var(--ease), border-color 0.3s var(--ease);
+}
+
+.predictor-form:hover {
+    background: rgba(25, 25, 25, 0.96);
+    border-color: var(--border-hover);
 }
 
 .predictor-result {
@@ -933,8 +967,7 @@ input[type="number"], input[type="text"] {
 }
 
 input[type="number"]:focus, input[type="text"]:focus {
-    border-color: var(--accent);
-    box-shadow: 0 2px 8px var(--accent-glow);
+    border-color: var(--cyan);
 }
 
 input[type="number"]::-webkit-outer-spin-button,
@@ -964,12 +997,15 @@ select {
     padding: 10px 36px 10px 14px;
     width: 100%;
     outline: none;
-    cursor: pointer;
     transition: all 0.25s var(--ease);
     appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%2300F0FF' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 12px center;
+}
+
+.sidebar-toggle, .btn-primary, .btn-secondary {
+    cursor: none !important;
 }
 
 select:hover {
@@ -980,7 +1016,6 @@ select:hover {
 select:focus {
     border-color: var(--cyan);
     background: rgba(255, 255, 255, 0.06);
-    box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.10), 0 2px 12px rgba(0, 240, 255, 0.06);
 }
 
 select option {
@@ -1022,7 +1057,6 @@ select option {
 .cdd.open .cdd-trigger {
     border-color: var(--cyan);
     background: rgba(255, 255, 255, 0.06);
-    box-shadow: 0 0 0 2px rgba(0, 240, 255, 0.10), 0 2px 12px rgba(0, 240, 255, 0.06);
 }
 
 .cdd-label {
@@ -1182,6 +1216,7 @@ select option {
     transition: all 0.3s var(--ease);
     position: relative;
     overflow: hidden;
+    z-index: 1;
 }
 
 .btn-lime::before {
@@ -1752,7 +1787,13 @@ select option {
 .js-plotly-plot:hover .plotly .modebar { opacity: 0.2 !important; }
 
 /* Legend filter hint */
-.js-plotly-plot .legend .traces { cursor: pointer; }
+/* Legend filter hint - forcando cursor none para nao conflitar com o custom dot */
+.js-plotly-plot .legend .traces, 
+.js-plotly-plot .main-svc, 
+.js-plotly-plot .draglayer,
+.js-plotly-plot .nsewdrag { 
+    cursor: none !important; 
+}
 .legend-filter-hint {
     font-family: var(--font-mono);
     font-size: 0.5rem;

@@ -25,42 +25,56 @@ class DataLoader:
         return cls._instance
 
     def load_csv(self, csv_path: Optional[str] = None) -> pd.DataFrame:
-        """
-        Carrega CSV com dados processados (apenas na primeira vez)
-
-        Args:
-            csv_path: Caminho para o CSV processado (opcional)
-
-        Returns:
-            DataFrame com dados históricos
-
-        Raises:
-            FileNotFoundError: Se o arquivo CSV não existir
-            DataNotLoadedException: Se os dados não puderem ser carregados
-        """
         if self._data is not None:
             logger.info("Dados já carregados em memória")
             return self._data
+            
+        base_dir = Path(CSV_PATH).parent.parent
+        orders_file = base_dir / "olist_orders_dataset.csv"
+        items_file = base_dir / "olist_order_items_dataset.csv"
+        customers_file = base_dir / "olist_customers_dataset.csv"
 
-        path = csv_path or CSV_PATH
-        csv_file = Path(path)
-
-        if not csv_file.exists():
+        if not orders_file.exists() or not items_file.exists() or not customers_file.exists():
             logger.warning(
-                f"CSV não encontrado em: {csv_file}. "
-                f"Algumas funcionalidades podem não estar disponíveis."
+                f"Tabelas essenciais (orders/items/customers) não encontradas em: {base_dir}. "
+                f"Dashboard ficará com visual apenas estético."
             )
-            # Não lançar exceção, pois os dados históricos são opcionais
             return pd.DataFrame()
 
         try:
-            logger.info(f"Carregando dados de: {csv_file}")
-            self._data = pd.read_csv(csv_file)
-            logger.info(f"Dados carregados: {len(self._data)} linhas")
+            logger.info("Lendo e agregando datasets brutos de pedidos, itens e clientes.")
+            df_orders = pd.read_csv(orders_file)
+            df_items = pd.read_csv(items_file)
+            df_customers = pd.read_csv(customers_file)
+            
+            # Merge para pegar Freight (itens) e State (clientes)
+            df_merged = df_orders.merge(df_items, on="order_id", how="left")
+            df_merged = df_merged.merge(df_customers, on="customer_id", how="left")
+            
+            # Tratar datas
+            df_merged['order_purchase_timestamp'] = pd.to_datetime(df_merged['order_purchase_timestamp'])
+            df_merged['purchase_year'] = df_merged['order_purchase_timestamp'].dt.year
+            
+            # Feature "delivery_delayed" e Cálculo de Delta Dias
+            if "order_delivered_customer_date" in df_merged.columns and "order_estimated_delivery_date" in df_merged.columns:
+                delivered = pd.to_datetime(df_merged['order_delivered_customer_date'])
+                estimated = pd.to_datetime(df_merged['order_estimated_delivery_date'])
+                
+                # Target binário
+                df_merged['delivery_delayed'] = (delivered > estimated).astype(int)
+                
+                # Delta em dias (Positivo = Atraso, Negativo = Antecipação)
+                df_merged['delta_days'] = (delivered - estimated).dt.days
+            else:
+                df_merged['delivery_delayed'] = 0
+                df_merged['delta_days'] = 0
+
+            self._data = df_merged
+            logger.info(f"Dados históricos carregados: {len(self._data)} linhas (Merged c/ Clientes)")
             return self._data
         except Exception as e:
-            logger.error(f"Erro ao carregar dados: {str(e)}")
-            raise DataNotLoadedException(f"Erro ao carregar dados: {str(e)}")
+            logger.error(f"Erro ao agregar csv brutos: {str(e)}")
+            raise DataNotLoadedException(f"Erro ao carregar dados brutos on the fly: {str(e)}")
 
     def load_geolocation(self, geo_path: Optional[str] = None) -> pd.DataFrame:
         """

@@ -1,0 +1,37 @@
+name: Deploy to VPS
+
+# Gatilho: Quando fizer push ou mesclar Pull Requests na main
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch: # Permite rodar manualmente na aba Actions no GitHub
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          # Usamos chave SSH privada criptografada pra conectar sem pedir senha
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            # Entra na pasta do seu projeto. Caso não exista será o erro, garanta que ela exista na VPS
+            cd ~/olist-dataset
+            
+            # Puxa o código recém autorizado da main
+            git pull origin main
+            
+            # Reconstrói a imagem e reinicia a aplicação via Docker sem downtime demorado
+            docker-compose pull || true
+            docker-compose up -d --build
+            
+            # (Opcional) Limpa as imagens antigas do docker do Linux que ficaram órfãs (economiza HD)
+            docker image prune -f

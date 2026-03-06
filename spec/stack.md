@@ -41,4 +41,4 @@
 | `causalml` | Uplift Modeling fora do escopo |
 | `nltk` / `spacy` | NLP fora do escopo |
 | `pytest` / `playwright` | Testes automatizados fora do escopo de 4 dias |
-| `seaborn` | Padronizamos no `plotly` para integração nativa com Streamlit |
+| `seaborn` | Padronizamos no `plotly.js` para integração nativa com o Frontend |

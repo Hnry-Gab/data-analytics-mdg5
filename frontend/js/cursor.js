@@ -9,8 +9,8 @@
     const dot = document.createElement("div");
     Object.assign(dot.style, {
         position: "fixed",
-        top: "-50px",
-        left: "-50px",
+        top: "0",
+        left: "0",
         width: "14px",
         height: "14px",
         borderRadius: "50%",
@@ -18,44 +18,55 @@
         pointerEvents: "none",
         zIndex: "9999",
         mixBlendMode: "difference",
-        transition: "transform 0.15s cubic-bezier(.16,1,.3,1), opacity 0.2s ease",
-        transform: "translate(-50%,-50%) scale(1)",
+        transition: "opacity 0.2s ease",
+        transform: "translate3d(-100px, -100px, 0) scale(1)",
         opacity: "0",
     });
     document.body.appendChild(dot);
 
-    let mx = -50, my = -50, cx = -50, cy = -50;
+    let targetScale = 1;
+    let currentScale = 1;
+    let mx = -100, my = -100;
 
     document.addEventListener("mousemove", (e) => {
         mx = e.clientX;
         my = e.clientY;
         dot.style.opacity = "1";
+        // Aplicação imediata da posição para eliminar latência
+        updateTransform();
     });
 
     document.addEventListener("mouseleave", () => {
         dot.style.opacity = "0";
     });
 
-    (function loop() {
-        cx += (mx - cx) * 0.18;
-        cy += (my - cy) * 0.18;
-        dot.style.left = cx + "px";
-        dot.style.top  = cy + "px";
-        requestAnimationFrame(loop);
+    function updateTransform() {
+        dot.style.transform = `translate3d(${mx}px, ${my}px, 0) translate(-50%, -50%) scale(${currentScale})`;
+    }
+
+    // Loop apenas para suavizar a transição de escala (Hover)
+    (function scaleLoop() {
+        if (Math.abs(targetScale - currentScale) > 0.001) {
+            currentScale += (targetScale - currentScale) * 0.2;
+            updateTransform();
+        }
+        requestAnimationFrame(scaleLoop);
     })();
 
-    /* Hover reactions */
+    /* Reações de Hover via Event Delegation */
     const BTNS  = "button, a, .nav-tab, .btn-lime";
     const CARDS = ".glass-card, .kpi-card, .rec-card, .chart-card";
 
     document.addEventListener("mouseover", (e) => {
-        if (e.target.closest(BTNS))  dot.style.transform = "translate(-50%,-50%) scale(2.8)";
-        else if (e.target.closest(CARDS)) dot.style.transform = "translate(-50%,-50%) scale(1.8)";
+        const target = e.target;
+        if (target.closest(BTNS)) targetScale = 2.8;
+        else if (target.closest(CARDS)) targetScale = 1.8;
     });
 
     document.addEventListener("mouseout", (e) => {
-        if (e.target.closest(BTNS) || e.target.closest(CARDS)) {
-            dot.style.transform = "translate(-50%,-50%) scale(1)";
+        const target = e.target;
+        if (target.closest(BTNS) || target.closest(CARDS)) {
+            targetScale = 1;
         }
     });
 })();

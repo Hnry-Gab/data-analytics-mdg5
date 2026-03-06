@@ -60,7 +60,7 @@ async def startup_event():
     # Carregar modelo ML
     try:
         ml_model.load_model()
-        logger.info("✓ Modelo XGBoost carregado com sucesso")
+        logger.info("✓ Modelo CatBoost V5 carregado com sucesso")
     except FileNotFoundError:
         logger.warning(
             "✗ Modelo não encontrado. API funcionará sem predições. "
@@ -110,11 +110,21 @@ async def olist_exception_handler(request: Request, exc: OlistAPIException):
     )
 
 
-# Servir arquivos estáticos (HTML/CSS/JS)
+# Servir arquivos estáticos (HTML/CSS/JS) preservando as URIs relativas
 static_path = Path(STATIC_DIR)
 if static_path.exists():
-    app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
-    logger.info(f"✓ Arquivos estáticos montados em /static")
+    css_path = static_path / "css"
+    js_path = static_path / "js"
+    fonts_path = static_path / "fonts"
+    
+    if css_path.exists(): 
+        app.mount("/css", StaticFiles(directory=str(css_path)), name="css")
+    if js_path.exists():
+        app.mount("/js", StaticFiles(directory=str(js_path)), name="js")
+    if fonts_path.exists():
+        app.mount("/fonts", StaticFiles(directory=str(fonts_path)), name="fonts")
+        
+    logger.info(f"✓ Arquivos estáticos montados diretamente na raiz")
 else:
     logger.warning(
         f"✗ Diretório de estáticos não encontrado: {static_path}. "
@@ -122,26 +132,17 @@ else:
     )
 
 
-# Rota raiz - Servir página inicial
+# Rota raiz - Servir página inicial Frontend
 @app.get("/", include_in_schema=False)
 async def root():
-    """
-    Redireciona para a página inicial (index.html)
-    """
     index_file = static_path / "index.html"
     if index_file.exists():
         return FileResponse(index_file)
     else:
         return JSONResponse(
-            status_code=200,
-            content={
-                "message": "Olist Logistics API",
-                "version": "1.0.0",
-                "docs": "/docs",
-                "health": "/api/health"
-            }
+            status_code=404,
+            content={"error": "Index.html não encontrado na pasta frontend!"}
         )
-
 
 # Executar aplicação (apenas para desenvolvimento)
 if __name__ == "__main__":

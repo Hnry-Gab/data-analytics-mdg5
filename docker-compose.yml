@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  olist-g5-app:
+    build: .
+    container_name: olist_g5_app
+    restart: always # Mantém a aplicação viva após o boot da VPS
+    ports:
+      # Exposição simplificada: Cloudflare direcionará tráfego para IP_VPS:8000
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - DEBUG=False
+      - HOST=0.0.0.0
+      - PORT=8000
+      # Substitua por seu domínio real quando houver, ex: https://olist.seu-dominio.com
+      - ALLOWED_ORIGINS=* 
+      # Indicando pro app ler do container isolado
+      - MODEL_PATH=/app/models/v5/catboost_atraso_v5.cbm
+      - CSV_PATH=/app/dataset/processed/olist_processed.csv
+    # Redes locais do Docker
+    networks:
+      - olist_net
+
+networks:
+  olist_net:
+    driver: bridge

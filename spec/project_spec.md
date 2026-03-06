@@ -7,7 +7,7 @@
 
 ## Escopo
 
-Construir uma aplicação web unificada (Streamlit) que analise dados históricos de logística do e-commerce Olist e preveja, **em tempo real**, se um novo pedido tem risco de atrasar, permitindo ações preventivas de Growth e retenção.
+Construir uma aplicação web unificada (FastAPI + HTML/JS) que analise dados históricos de logística do e-commerce Olist e preveja, **em tempo real**, se um novo pedido tem risco de atrasar, permitindo ações preventivas de Growth e retenção.
 
 ## Prazo
 
@@ -18,12 +18,12 @@ Construir uma aplicação web unificada (Streamlit) que analise dados histórico
 | Esquadrão | Membros | Responsabilidade |
 |:--|:--|:--|
 | **Alpha** (Insights & ML) | Mauricio, Henry, Lucas | EDA, Feature Engineering, treinamento do XGBoost |
-| **Delta** (Painel Visual) | Pablo, Douglas | Streamlit App (3 abas), gráficos Plotly |
+| **Delta** (Painel Visual) | Pablo, Douglas | Aplicação Web (3 abas), gráficos Plotly.js |
 | **Omega** (Negócios) | Anderson, Gabriel | Narrativa de negócio, slides, apresentação |
 
 ## Entrega Final
 
-Uma Aplicação Web Streamlit com **3 abas**:
+Uma Aplicação Web Integrada com **3 abas**:
 
 1. **Painel Gerencial (O Passado):** Dashboard interativo com filtros por data, estado e categoria. Mapa de calor logístico do Brasil.
 2. **Insights Valiosos (A Inteligência):** Key Results e descobertas de negócio em formato texto + gráficos de apoio.
