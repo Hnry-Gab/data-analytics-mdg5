@@ -19,10 +19,12 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            if [ ! -d "$HOME/olist-dataset" ]; then git clone https://github.com/Hnry-Gab/data-analytics-mdg5.git $HOME/olist-dataset; fi
-            cd $HOME/olist-dataset
-            git config --global --add safe.directory $HOME/olist-dataset
+            cd /home/ubuntu/data-analytics-mdg5
             git pull origin main
-            docker-compose down || true
-            docker-compose up -d --build
-            docker system prune -f
+            source venv/bin/activate
+            pip install -r requirements.txt
+            if [ -f /etc/systemd/system/olist-dashboard.service ]; then
+              sudo systemctl restart olist-dashboard
+            else
+              echo "Aviso: Serviço systemd ainda não configurado na VPS. Rode o passo de configuração do plano."
+            fi
