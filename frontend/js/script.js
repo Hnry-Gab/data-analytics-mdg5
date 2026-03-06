@@ -142,7 +142,7 @@ const I18N = {
         "radar.sellerSpd":    "Seller Spd",
         "radar.interstate":   "Interstate",
         // Footer
-        "footer.text":        "Olist Logistics Intelligence — Academic project · ALPHA EDTECH 2025",
+        "footer.text":        "Olist Logistics Intelligence — Academic project · ALPHA EDTECH 2026",
         // Chat
         "chat.title":         "OLIST AI",
         "chat.status":        "// online",
@@ -260,7 +260,7 @@ const I18N = {
         "radar.fRatio":       "Razão F.",
         "radar.sellerSpd":    "Vel. Vendedor",
         "radar.interstate":   "Interestadual",
-        "footer.text":        "Olist Inteligência Logística — Projeto acadêmico · ALPHA EDTECH 2025",
+        "footer.text":        "Olist Inteligência Logística — Projeto acadêmico · ALPHA EDTECH 2026",
         // Chat
         "chat.title":         "OLIST IA",
         "chat.status":        "// online",
