@@ -10,6 +10,7 @@ from olist_mcp.tools import (
     ml_model,
     query_filter,
     temporal,
+    visualization,
 )
 
 mcp = FastMCP(
@@ -30,6 +31,7 @@ temporal.register(mcp)
 business_insights.register(mcp)
 ml_model.register(mcp)
 query_filter.register(mcp)
+visualization.register(mcp)
 
 if __name__ == "__main__":
     mcp.run()
