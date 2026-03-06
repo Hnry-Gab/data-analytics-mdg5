@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - feature/integracao-final
 
 jobs:
   deploy:
@@ -22,7 +21,7 @@ jobs:
           script: |
             cd ~/olist-dataset || git clone https://github.com/Hnry-Gab/data-analytics-mdg5.git ~/olist-dataset
             cd ~/olist-dataset
-            git pull origin feature/integracao-final
+            git pull origin main
             docker compose down
             docker compose up -d --build
             docker system prune -f
