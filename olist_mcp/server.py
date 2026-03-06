@@ -2,7 +2,13 @@
 
 from fastmcp import FastMCP
 
-from olist_mcp.tools import dataset_stats, documentation, geographic, temporal
+from olist_mcp.tools import (
+    business_insights,
+    dataset_stats,
+    documentation,
+    geographic,
+    temporal,
+)
 
 mcp = FastMCP(
     name="olist-analytics-mcp",
@@ -19,6 +25,7 @@ dataset_stats.register(mcp)
 documentation.register(mcp)
 geographic.register(mcp)
 temporal.register(mcp)
+business_insights.register(mcp)
 
 if __name__ == "__main__":
     mcp.run()
