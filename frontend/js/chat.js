@@ -55,6 +55,35 @@
         return d.innerHTML;
     }
 
+    /** Minimal Markdown → HTML (safe — escapes first, then applies formatting) */
+    function renderMarkdown(raw) {
+        let html = escapeHtml(raw);
+
+        // Bold: **text**
+        html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+
+        // Inline code: `code`
+        html = html.replace(/`([^`]+)`/g, '<code class="chat-inline-code">$1</code>');
+
+        // Line breaks
+        html = html.replace(/\n/g, "<br>");
+
+        // Bullet lists: lines starting with "- " (after <br>)
+        html = html.replace(/(?:^|<br>)- (.+?)(?=<br>|$)/g, (_, item) => {
+            return `<br><span class="chat-bullet">•</span> ${item}`;
+        });
+
+        return html;
+    }
+
+    /** UUID fallback for non-secure contexts (e.g. 0.0.0.0) */
+    function fallbackUUID() {
+        return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+            const r = (Math.random() * 16) | 0;
+            return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+        });
+    }
+
     function scrollToBottom() {
         messages.scrollTop = messages.scrollHeight;
     }
@@ -72,19 +101,33 @@
         const now = new Date().toISOString().slice(11, 19);
         const div = document.createElement("div");
         div.className = "chat-msg chat-msg--bot";
-        div.innerHTML = `<span class="chat-msg-meta">[AI ${now}]</span><p class="chat-bot-text"></p>`;
+        div.innerHTML =
+            `<span class="chat-msg-meta">[AI ${now}]</span>` +
+            `<p class="chat-bot-text"><span class="chat-typing"><span>.</span><span>.</span><span>.</span></span></p>`;
         messages.appendChild(div);
         scrollToBottom();
         return div;
     }
 
+    /** Remove typing indicator on first real content */
+    function removeTypingIndicator(botDiv) {
+        const typing = botDiv.querySelector(".chat-typing");
+        if (typing) typing.remove();
+    }
+
+    /** Raw text accumulator (per bot message) */
+    let _rawText = "";
+
     function appendTextDelta(botDiv, text) {
+        removeTypingIndicator(botDiv);
+        _rawText += text;
         const p = botDiv.querySelector(".chat-bot-text");
-        if (p) p.textContent += text;
+        if (p) p.innerHTML = renderMarkdown(_rawText);
         scrollToBottom();
     }
 
     function showToolIndicator(botDiv, toolName) {
+        removeTypingIndicator(botDiv);
         let ind = botDiv.querySelector(".chat-tool-indicator");
         if (!ind) {
             ind = document.createElement("span");
@@ -101,6 +144,7 @@
     }
 
     function appendError(botDiv, message) {
+        removeTypingIndicator(botDiv);
         const err = document.createElement("p");
         err.className = "chat-error";
         err.textContent = `⚠ ${message}`;
@@ -109,7 +153,14 @@
     }
 
     function finalizeBotMessage(botDiv) {
+        removeTypingIndicator(botDiv);
         botDiv.classList.add("chat-msg--complete");
+    }
+
+    function setInputEnabled(enabled) {
+        input.disabled = !enabled;
+        sendBtn.disabled = !enabled;
+        if (enabled) input.focus();
     }
 
     /* ── SSE event handler ───────────────────────────────── */
@@ -135,6 +186,22 @@
         scrollToBottom();
     }
 
+    /* ── Error message helper ────────────────────────────── */
+
+    async function getErrorMessage(response) {
+        const status = response.status;
+        if (status === 429) return "Limite de requisições atingido. Aguarde um momento e tente novamente.";
+        if (status === 503) {
+            try {
+                const body = await response.json();
+                return body.detail || "Chatbot indisponível no momento.";
+            } catch (_) {
+                return "Chatbot indisponível no momento.";
+            }
+        }
+        return `Erro do servidor (HTTP ${status}). Tente novamente.`;
+    }
+
     /* ── Send message ────────────────────────────────────── */
 
     let sending = false;
@@ -143,15 +210,20 @@
         const text = input.value.trim();
         if (!text || sending) return;
         sending = true;
+        setInputEnabled(false);
 
         if (!window._chatSessionId) {
-            window._chatSessionId = crypto.randomUUID();
+            window._chatSessionId = (crypto.randomUUID?.bind(crypto) || fallbackUUID)();
         }
 
         appendUserMessage(text);
         input.value = "";
 
         const botDiv = createBotBubble();
+        _rawText = "";
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 120_000);
 
         try {
             const response = await fetch("/api/chat", {
@@ -161,10 +233,12 @@
                     message: text,
                     session_id: window._chatSessionId,
                 }),
+                signal: controller.signal,
             });
 
             if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
+                const errorMsg = await getErrorMessage(response);
+                throw new Error(errorMsg);
             }
 
             const reader = response.body.getReader();
@@ -193,9 +267,14 @@
                 }
             }
         } catch (err) {
-            appendError(botDiv, "Erro de conexão. Tente novamente.");
+            const msg = err.name === "AbortError"
+                ? "Tempo limite atingido. Tente novamente."
+                : (err.message || "Erro de conexão. Tente novamente.");
+            appendError(botDiv, msg);
         } finally {
+            clearTimeout(timeout);
             sending = false;
+            setInputEnabled(true);
             finalizeBotMessage(botDiv);
         }
     }

@@ -29,7 +29,7 @@ class DataLoader:
             logger.info("Dados já carregados em memória")
             return self._data
             
-        base_dir = Path(CSV_PATH).parent.parent
+        base_dir = Path(CSV_PATH)
         orders_file = base_dir / "olist_orders_dataset.csv"
         items_file = base_dir / "olist_order_items_dataset.csv"
         customers_file = base_dir / "olist_customers_dataset.csv"
@@ -127,7 +127,7 @@ class DataLoader:
             geo_file = Path(geo_path)
         else:
             # Assumir que está na mesma pasta do CSV de dados
-            csv_dir = Path(CSV_PATH).parent
+            csv_dir = Path(CSV_PATH)
             geo_file = csv_dir / "olist_geolocation_dataset.csv"
 
         if not geo_file.exists():

@@ -1485,6 +1485,88 @@ select option {
     border-radius: var(--radius-md) var(--radius-md) 4px var(--radius-md);
 }
 
+/* ── Typing indicator ─────────────────────────────────────────────────── */
+
+.chat-typing {
+    display: inline-flex;
+    gap: 3px;
+    padding: 0 4px;
+}
+
+.chat-typing span {
+    display: inline-block;
+    color: var(--muted);
+    animation: chat-dot-blink 1.4s infinite both;
+    font-size: 1.2em;
+    line-height: 1;
+}
+
+.chat-typing span:nth-child(2) { animation-delay: 0.2s; }
+.chat-typing span:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes chat-dot-blink {
+    0%, 80%, 100% { opacity: 0.2; }
+    40% { opacity: 1; }
+}
+
+/* ── Tool indicator ──────────────────────────────────────────────────── */
+
+.chat-tool-indicator {
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    color: var(--cyan);
+    padding: 6px 16px 4px;
+    opacity: 0.85;
+    animation: chat-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes chat-pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* ── Error message ───────────────────────────────────────────────────── */
+
+.chat-error {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--alert);
+    padding: 8px 16px;
+    margin: 4px 0 0;
+    border-left: 2px solid var(--alert);
+    opacity: 0.9;
+}
+
+/* ── Inline code in bot messages ─────────────────────────────────────── */
+
+.chat-inline-code {
+    background: rgba(255, 255, 255, 0.06);
+    padding: 1px 5px;
+    border-radius: 3px;
+    font-size: 0.9em;
+}
+
+/* ── Bullet points in bot messages ───────────────────────────────────── */
+
+.chat-bullet {
+    color: var(--cyan);
+    margin-right: 4px;
+}
+
+/* ── Disabled state ──────────────────────────────────────────────────── */
+
+.chat-input:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.chat-send:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 /* ── Input ────────────────────────────────────────────────────────────── */
 
 .chat-input-area {
