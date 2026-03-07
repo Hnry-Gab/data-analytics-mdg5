@@ -1,6 +1,6 @@
 /**
- * Chatbot UI — Mock interactions
- * Open / Close / Expand / Minimize
+ * Chatbot UI — SSE streaming integration with backend
+ * Open / Close / Expand / Minimize + real LLM chat via /api/chat
  */
 (function () {
     const fab      = document.getElementById("chat-fab");
@@ -11,6 +11,8 @@
     const input    = document.getElementById("chat-input");
     const sendBtn  = document.getElementById("chat-send");
     const messages = document.getElementById("chat-messages");
+
+    /* ── Window controls ─────────────────────────────────── */
 
     function open() {
         overlay.classList.remove("chat-hidden");
@@ -26,7 +28,6 @@
 
     function expand() {
         overlay.classList.add("chat-expanded");
-        // Hide chart-help overlay to prevent overlap
         const chartHelp = document.getElementById("chart-help-overlay");
         if (chartHelp) chartHelp.classList.add("chart-help-hidden");
     }
@@ -40,64 +41,242 @@
     btnExpand.addEventListener("click", expand);
     btnMin.addEventListener("click", minimize);
 
-    /* Close on Escape */
     document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && !overlay.classList.contains("chat-hidden")) {
             close();
         }
     });
 
-    /* Mock send */
-    function getMockResponses() {
-        return [
-            t("chat.mock.r1"),
-            t("chat.mock.r2"),
-            t("chat.mock.r3"),
-            t("chat.mock.r4"),
-            t("chat.mock.r5"),
-            t("chat.mock.r6"),
-            t("chat.mock.r7"),
-        ];
+    /* ── Helpers ──────────────────────────────────────────── */
+
+    function escapeHtml(str) {
+        const d = document.createElement("div");
+        d.textContent = str;
+        return d.innerHTML;
     }
 
-    let mockIdx = 0;
+    /** Minimal Markdown → HTML (safe — escapes first, then applies formatting) */
+    function renderMarkdown(raw) {
+        let html = escapeHtml(raw);
 
-    function sendMessage() {
-        const text = input.value.trim();
-        if (!text) return;
+        // Bold: **text**
+        html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 
-        const now = new Date().toISOString().slice(11, 19);
+        // Inline code: `code`
+        html = html.replace(/`([^`]+)`/g, '<code class="chat-inline-code">$1</code>');
 
-        // User message
-        const userDiv = document.createElement("div");
-        userDiv.className = "chat-msg chat-msg--user";
-        userDiv.innerHTML = `<span class="chat-msg-meta">[USR ${now}]</span><p>${escapeHtml(text)}</p>`;
-        messages.appendChild(userDiv);
-        input.value = "";
-        scrollToBottom();
+        // Line breaks
+        html = html.replace(/\n/g, "<br>");
 
-        // Bot response (mock, with delay)
-        setTimeout(() => {
-            const responses = getMockResponses();
-            const resp = responses[mockIdx % responses.length];
-            mockIdx++;
-            const botNow = new Date().toISOString().slice(11, 19);
-            const botDiv = document.createElement("div");
-            botDiv.className = "chat-msg chat-msg--bot";
-            botDiv.innerHTML = `<span class="chat-msg-meta">[AI ${botNow}]</span><p>${resp}</p>`;
-            messages.appendChild(botDiv);
-            scrollToBottom();
-        }, 600 + Math.random() * 800);
+        // Bullet lists: lines starting with "- " (after <br>)
+        html = html.replace(/(?:^|<br>)- (.+?)(?=<br>|$)/g, (_, item) => {
+            return `<br><span class="chat-bullet">•</span> ${item}`;
+        });
+
+        return html;
+    }
+
+    /** UUID fallback for non-secure contexts (e.g. 0.0.0.0) */
+    function fallbackUUID() {
+        return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+            const r = (Math.random() * 16) | 0;
+            return (c === "x" ? r : (r & 0x3) | 0x8).toString(16);
+        });
     }
 
     function scrollToBottom() {
         messages.scrollTop = messages.scrollHeight;
     }
 
-    function escapeHtml(str) {
-        const d = document.createElement("div");
-        d.textContent = str;
-        return d.innerHTML;
+    function appendUserMessage(text) {
+        const now = new Date().toISOString().slice(11, 19);
+        const div = document.createElement("div");
+        div.className = "chat-msg chat-msg--user";
+        div.innerHTML = `<span class="chat-msg-meta">[USR ${now}]</span><p>${escapeHtml(text)}</p>`;
+        messages.appendChild(div);
+        scrollToBottom();
+    }
+
+    function createBotBubble() {
+        const now = new Date().toISOString().slice(11, 19);
+        const div = document.createElement("div");
+        div.className = "chat-msg chat-msg--bot";
+        div.innerHTML =
+            `<span class="chat-msg-meta">[AI ${now}]</span>` +
+            `<p class="chat-bot-text"><span class="chat-typing"><span>.</span><span>.</span><span>.</span></span></p>`;
+        messages.appendChild(div);
+        scrollToBottom();
+        return div;
+    }
+
+    /** Remove typing indicator on first real content */
+    function removeTypingIndicator(botDiv) {
+        const typing = botDiv.querySelector(".chat-typing");
+        if (typing) typing.remove();
+    }
+
+    /** Raw text accumulator (per bot message) */
+    let _rawText = "";
+
+    function appendTextDelta(botDiv, text) {
+        removeTypingIndicator(botDiv);
+        _rawText += text;
+        const p = botDiv.querySelector(".chat-bot-text");
+        if (p) p.innerHTML = renderMarkdown(_rawText);
+        scrollToBottom();
+    }
+
+    function showToolIndicator(botDiv, toolName) {
+        removeTypingIndicator(botDiv);
+        let ind = botDiv.querySelector(".chat-tool-indicator");
+        if (!ind) {
+            ind = document.createElement("span");
+            ind.className = "chat-tool-indicator";
+            botDiv.appendChild(ind);
+        }
+        ind.textContent = `🔍 Consultando dados (${toolName})...`;
+        scrollToBottom();
+    }
+
+    function hideToolIndicator(botDiv) {
+        const ind = botDiv.querySelector(".chat-tool-indicator");
+        if (ind) ind.remove();
+    }
+
+    function appendError(botDiv, message) {
+        removeTypingIndicator(botDiv);
+        const err = document.createElement("p");
+        err.className = "chat-error";
+        err.textContent = `⚠ ${message}`;
+        botDiv.appendChild(err);
+        scrollToBottom();
+    }
+
+    function finalizeBotMessage(botDiv) {
+        removeTypingIndicator(botDiv);
+        botDiv.classList.add("chat-msg--complete");
+    }
+
+    function setInputEnabled(enabled) {
+        input.disabled = !enabled;
+        sendBtn.disabled = !enabled;
+        if (enabled) input.focus();
+    }
+
+    /* ── SSE event handler ───────────────────────────────── */
+
+    function handleSSEEvent(type, data, botDiv) {
+        switch (type) {
+            case "text_delta":
+                appendTextDelta(botDiv, data.content);
+                break;
+            case "tool_call":
+                showToolIndicator(botDiv, data.name);
+                break;
+            case "tool_result":
+                hideToolIndicator(botDiv);
+                break;
+            case "error":
+                appendError(botDiv, data.message);
+                break;
+            case "done":
+                finalizeBotMessage(botDiv);
+                break;
+        }
+        scrollToBottom();
+    }
+
+    /* ── Error message helper ────────────────────────────── */
+
+    async function getErrorMessage(response) {
+        const status = response.status;
+        if (status === 429) return "Limite de requisições atingido. Aguarde um momento e tente novamente.";
+        if (status === 503) {
+            try {
+                const body = await response.json();
+                return body.detail || "Chatbot indisponível no momento.";
+            } catch (_) {
+                return "Chatbot indisponível no momento.";
+            }
+        }
+        return `Erro do servidor (HTTP ${status}). Tente novamente.`;
+    }
+
+    /* ── Send message ────────────────────────────────────── */
+
+    let sending = false;
+
+    async function sendMessage() {
+        const text = input.value.trim();
+        if (!text || sending) return;
+        sending = true;
+        setInputEnabled(false);
+
+        if (!window._chatSessionId) {
+            window._chatSessionId = (crypto.randomUUID?.bind(crypto) || fallbackUUID)();
+        }
+
+        appendUserMessage(text);
+        input.value = "";
+
+        const botDiv = createBotBubble();
+        _rawText = "";
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 120_000);
+
+        try {
+            const response = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    message: text,
+                    session_id: window._chatSessionId,
+                }),
+                signal: controller.signal,
+            });
+
+            if (!response.ok) {
+                const errorMsg = await getErrorMessage(response);
+                throw new Error(errorMsg);
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n");
+                buffer = lines.pop();
+
+                let eventType = "";
+                for (const line of lines) {
+                    if (line.startsWith("event: ")) {
+                        eventType = line.slice(7);
+                    } else if (line.startsWith("data: ") && eventType) {
+                        try {
+                            const data = JSON.parse(line.slice(6));
+                            handleSSEEvent(eventType, data, botDiv);
+                        } catch (_) { /* skip malformed JSON */ }
+                        eventType = "";
+                    }
+                }
+            }
+        } catch (err) {
+            const msg = err.name === "AbortError"
+                ? "Tempo limite atingido. Tente novamente."
+                : (err.message || "Erro de conexão. Tente novamente.");
+            appendError(botDiv, msg);
+        } finally {
+            clearTimeout(timeout);
+            sending = false;
+            setInputEnabled(true);
+            finalizeBotMessage(botDiv);
+        }
     }
 
     sendBtn.addEventListener("click", sendMessage);

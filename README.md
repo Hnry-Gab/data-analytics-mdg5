@@ -120,3 +120,13 @@ pip install -r requirements.txt
 
 **Commits:** Usar prefixos semânticos (`feat:`, `fix:`, `docs:`, `refactor:`).
 **Pull Requests:** Revisão obrigatória antes do merge na `main`.
+
+
+## Free LLM Models:
+- stepfun/step-3.5-flash:free
+- arcee-ai/trinity-large-preview:free
+- z-ai/glm-4.5-air:free
+- qwen/qwen3-vl-235b-a22b-thinking
+- arcee-ai/trinity-mini:free
+- openai/gpt-oss-120b:free
+- qwen/qwen3-coder:free

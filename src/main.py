@@ -16,6 +16,7 @@ from src.config import (
     PORT
 )
 from src.api.routes import router as api_router
+from src.chatbot.routes import router as chatbot_router
 from src.core.ml_model import ml_model
 from src.core.data_loader import data_loader
 from src.utils.logger import get_logger
@@ -44,6 +45,7 @@ app.add_middleware(
 
 # Incluir rotas da API
 app.include_router(api_router)
+app.include_router(chatbot_router)
 
 
 # Event handlers
@@ -83,6 +85,16 @@ async def startup_event():
     except Exception as e:
         logger.warning(f"✗ Geolocalização não carregada: {str(e)}")
 
+    # Iniciar chatbot MCP (opcional)
+    from src.chatbot.config import CHATBOT_ENABLED
+    if CHATBOT_ENABLED:
+        from src.chatbot.mcp_client import mcp_client
+        try:
+            await mcp_client.start()
+            logger.info(f"✓ Chatbot MCP: {len(mcp_client.tools)} tools disponíveis")
+        except Exception as e:
+            logger.warning(f"✗ Chatbot MCP falhou: {e}. Chat funcionará sem tools.")
+
     logger.info("=" * 60)
     logger.info(f"API rodando em: http://{HOST}:{PORT}")
     logger.info(f"Documentação: http://{HOST}:{PORT}/docs")
@@ -95,6 +107,10 @@ async def shutdown_event():
     Executado no encerramento da aplicação
     """
     logger.info("Encerrando Olist Logistics API")
+    from src.chatbot.mcp_client import mcp_client
+    from src.chatbot.openrouter_client import close_client
+    await mcp_client.stop()
+    await close_client()
 
 
 # Exception handlers
