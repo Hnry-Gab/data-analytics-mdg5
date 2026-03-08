@@ -5,7 +5,7 @@ import json
 import logging
 from collections.abc import AsyncIterator
 
-from src.chatbot.config import MAX_TOOL_ITERATIONS, OPENROUTER_API_KEY
+from src.chatbot.config import MAX_CONSECUTIVE_TOOL_ERRORS, MAX_TOOL_ITERATIONS, OPENROUTER_API_KEY
 from src.chatbot.mcp_client import mcp_client
 from src.chatbot.openrouter_client import stream_chat_completion
 from src.chatbot.session_manager import session_manager
@@ -46,6 +46,8 @@ async def handle_chat_message(message: str, session_id: str) -> AsyncIterator[st
     )
 
     # 3. Agentic loop
+    consecutive_errors = 0
+
     for iteration in range(MAX_TOOL_ITERATIONS):
         messages = session_manager.get_or_create(session_id)
         full_content = ""
@@ -116,6 +118,8 @@ async def handle_chat_message(message: str, session_id: str) -> AsyncIterator[st
             })
 
             # Execute each tool via MCP
+            iteration_had_error = False
+
             for tc in tool_calls_accum.values():
                 try:
                     args = json.loads(tc["arguments_str"]) if tc["arguments_str"] else {}
@@ -130,6 +134,20 @@ async def handle_chat_message(message: str, session_id: str) -> AsyncIterator[st
 
                 result = await mcp_client.call_tool(tc["name"], args)
 
+                # Check for tool error
+                is_error = result.startswith("[MCP error]") or result.startswith("**Error:**")
+
+                if is_error:
+                    consecutive_errors += 1
+                    iteration_had_error = True
+                    logger.warning(
+                        "Tool '%s' error (%d/%d consecutive): %s",
+                        tc["name"], consecutive_errors,
+                        MAX_CONSECUTIVE_TOOL_ERRORS, result[:200],
+                    )
+                else:
+                    consecutive_errors = 0
+
                 yield _make_sse("tool_result", {
                     "name": tc["name"],
                     "content": result[:2000],
@@ -141,6 +159,24 @@ async def handle_chat_message(message: str, session_id: str) -> AsyncIterator[st
                     "name": tc["name"],
                     "content": result,
                 })
+
+            # Check if we hit the consecutive error limit
+            if consecutive_errors >= MAX_CONSECUTIVE_TOOL_ERRORS:
+                error_msg = (
+                    f"As chamadas de ferramenta falharam {consecutive_errors} vezes consecutivas. "
+                    f"Último erro: {result[:500]}"
+                )
+                logger.error(
+                    "Aborting tool loop: %d consecutive errors reached limit",
+                    consecutive_errors,
+                )
+                yield _make_sse("error", {"message": error_msg})
+                # Save an assistant message explaining the error
+                session_manager.append(session_id, {
+                    "role": "assistant",
+                    "content": f"⚠️ {error_msg}",
+                })
+                break
 
             continue  # Loop back to step 3: LLM processes tool results
 

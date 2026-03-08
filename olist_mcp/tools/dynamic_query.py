@@ -19,7 +19,6 @@ from olist_mcp.cache import DataStore
 
 _VALID_OPS = {"eq", "neq", "gt", "gte", "lt", "lte", "contains", "in", "notnull"}
 _VALID_AGGS = {"mean", "sum", "count", "min", "max", "median", "std", "nunique", "value_counts"}
-_MAX_TOP_N = 500
 _MAX_DISPLAY_ROWS = 50
 
 _MONEY_COLS = {"price", "freight_value", "valor_total_pedido"}
@@ -295,12 +294,10 @@ def register(mcp: FastMCP) -> None:
         Filter format: [{"column": "customer_state", "op": "eq", "value": "SP"}]
         columns: which columns to display (default: sort_by + a few context cols).
         agg_column: if provided, compute agg(agg_column) over the top-N rows.
-        Cap: n is capped at 500.
         """
         df = DataStore.df()
         n_total = len(df)
 
-        n = min(n, _MAX_TOP_N)
 
         if sort_by not in df.columns:
             return f"**Error:** Column '{sort_by}' not found. Available columns:\n{', '.join(sorted(df.columns))}"
