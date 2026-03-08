@@ -1,17 +1,21 @@
-"""MCP-01: Dynamic Query Tools (4 tools).
+"""MCP-01: Dynamic Query Tools (5 tools).
 
 Gives the LLM full control over the dataset via parametrized
 aggregate, group-by, top-N, and compare operations with arbitrary filters.
+Also supports batch execution of multiple queries.
 """
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import pandas as pd
 from fastmcp import FastMCP
 
 from olist_mcp.cache import DataStore
+
+logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -24,7 +28,7 @@ _MAX_DISPLAY_ROWS = 50
 _MONEY_COLS = {"price", "freight_value", "valor_total_pedido"}
 _RATE_COLS = {"foi_atraso", "frete_ratio", "historico_atraso_seller", "ticket_medio_alto", "compra_fds", "rota_interestadual"}
 _DISTANCE_COLS = {"distancia_haversine_km"}
-_DAYS_COLS = {"dias_diferenca", "dias_atraso", "velocidade_lojista_dias", "velocidade_transportadora_dias"}
+_DAYS_COLS = {"dias_diferenca", "velocidade_lojista_dias", "velocidade_transportadora_dias"}
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -128,12 +132,193 @@ def _filters_summary(descriptions: list[str], n_filtered: int, n_total: int) -> 
 
 
 # ---------------------------------------------------------------------------
+# Business Logic (Internal)
+# ---------------------------------------------------------------------------
+
+
+def _run_aggregate(
+    column: str,
+    agg: str = "mean",
+    filters: list[dict] | None = None,
+    limit: int | None = None,
+) -> str:
+    df = DataStore.df()
+    n_total = len(df)
+
+    if column not in df.columns:
+        return f"**Error (aggregate):** Column '{column}' not found."
+
+    try:
+        df_f, descs = _apply_filters(df, filters)
+    except ValueError as e:
+        return f"**Error (aggregate):** {e}"
+
+    if agg not in _VALID_AGGS:
+        return f"**Error (aggregate):** Invalid aggregation '{agg}'."
+
+    n_filtered = len(df_f)
+    if n_filtered == 0:
+        return f"**No results.** Filters removed all rows.\n\n{_filters_summary(descs, 0, n_total)}"
+
+    header = _filters_summary(descs, n_filtered, n_total)
+
+    if agg == "value_counts":
+        vc = df_f[column].value_counts()
+        if limit:
+            vc = vc.head(limit)
+        result_df = vc.reset_index()
+        result_df.columns = [column, "count"]
+        table = result_df.head(_MAX_DISPLAY_ROWS).to_markdown(index=False)
+        shown = min(len(result_df), _MAX_DISPLAY_ROWS)
+        total_unique = len(vc)
+        trunc = f"\n\n*Showing {shown} of {total_unique} unique values.*" if shown < total_unique else ""
+        return f"### Value Counts: `{column}`\n\n{header}\n{table}{trunc}"
+
+    series = df_f[column]
+    result = getattr(series, agg)()
+    formatted = _format_number(result, column)
+
+    return f"### {agg.capitalize()}: `{column}`\n\n{header}\n**Result:** {formatted}"
+
+
+def _run_group_by(
+    group_by: str,
+    metrics: list[str],
+    filters: list[dict] | None = None,
+    sort_by: str | None = None,
+    sort_order: str = "desc",
+    limit: int | None = None,
+    min_count: int = 1,
+) -> str:
+    df = DataStore.df()
+    n_total = len(df)
+
+    if group_by not in df.columns:
+        return f"**Error (group_by):** Column '{group_by}' not found."
+
+    try:
+        df_f, descs = _apply_filters(df, filters)
+    except ValueError as e:
+        return f"**Error (group_by):** {e}"
+
+    n_filtered = len(df_f)
+    if n_filtered == 0:
+        return f"**No results.** Filters removed all rows.\n\n{_filters_summary(descs, 0, n_total)}"
+
+    # Parse and validate metrics
+    parsed_metrics: list[tuple[str, str]] = []
+    for m in metrics:
+        try:
+            agg_name, col_name = _parse_metric(m)
+        except ValueError as e:
+            return f"**Error (group_by):** {e}"
+        if col_name not in df.columns:
+            return f"**Error (group_by):** Column '{col_name}' not found in metric '{m}'."
+        parsed_metrics.append((agg_name, col_name))
+
+    # Build aggregation dict
+    agg_dict: dict[str, list] = {}
+    for agg_name, col_name in parsed_metrics:
+        agg_dict.setdefault(col_name, []).append(agg_name)
+
+    grouped = df_f.groupby(group_by, observed=True).agg(agg_dict)
+    grouped.columns = [f"{agg}:{col}" for col, agg in grouped.columns]
+    grouped = grouped.reset_index()
+
+    if min_count > 1:
+        count_col = next((f"count:{c}" for a, c in parsed_metrics if a == "count"), None)
+        if count_col and count_col in grouped.columns:
+            grouped = grouped[grouped[count_col] >= min_count]
+        else:
+            sizes = df_f.groupby(group_by, observed=True).size()
+            valid_groups = sizes[sizes >= min_count].index
+            grouped = grouped[grouped[group_by].isin(valid_groups)]
+
+    if sort_by:
+        sort_col = sort_by if sort_by in grouped.columns else None
+        if sort_col:
+            grouped = grouped.sort_values(sort_col, ascending=(sort_order == "asc"))
+    elif len(parsed_metrics) > 0:
+        first_metric = f"{parsed_metrics[0][0]}:{parsed_metrics[0][1]}"
+        if first_metric in grouped.columns:
+            grouped = grouped.sort_values(first_metric, ascending=False)
+
+    if limit:
+        grouped = grouped.head(limit)
+
+    header = _filters_summary(descs, n_filtered, n_total)
+    n_groups = len(grouped)
+    display_df = grouped.head(_MAX_DISPLAY_ROWS)
+    table = display_df.to_markdown(index=False)
+    trunc = f"\n\n*Showing {min(n_groups, _MAX_DISPLAY_ROWS)} of {n_groups} groups.*" if n_groups > _MAX_DISPLAY_ROWS else ""
+    return f"### Group By: `{group_by}`\n\n{header}\n{table}{trunc}"
+
+
+def _run_top_n(
+    sort_by: str,
+    n: int = 10,
+    sort_order: str = "desc",
+    filters: list[dict] | None = None,
+    columns: list[str] | None = None,
+    agg_column: str | None = None,
+    agg: str = "sum",
+) -> str:
+    df = DataStore.df()
+    n_total = len(df)
+
+    if sort_by not in df.columns:
+        return f"**Error (top_n):** Column '{sort_by}' not found."
+
+    try:
+        df_f, descs = _apply_filters(df, filters)
+    except ValueError as e:
+        return f"**Error (top_n):** {e}"
+
+    n_filtered = len(df_f)
+    if n_filtered == 0:
+        return f"**No results.** Filters removed all rows.\n\n{_filters_summary(descs, 0, n_total)}"
+
+    top = df_f.sort_values(sort_by, ascending=(sort_order == "asc")).head(n)
+    header = _filters_summary(descs, n_filtered, n_total)
+    order_label = "Bottom" if sort_order == "asc" else "Top"
+
+    agg_summary = ""
+    if agg_column:
+        if agg_column not in df.columns:
+            agg_summary = f"\n**Error:** agg_column '{agg_column}' not found.\n"
+        elif agg not in _VALID_AGGS:
+            agg_summary = f"\n**Error:** Invalid aggregation '{agg}'.\n"
+        else:
+            result = getattr(top[agg_column], agg)()
+            formatted = _format_number(result, agg_column)
+            agg_summary = f"\n**{agg.capitalize()}({agg_column}) over {order_label.lower()} {len(top):,}:** {formatted}\n"
+
+    if columns:
+        invalid = [c for c in columns if c not in df.columns]
+        if invalid:
+            return f"**Error:** Columns not found: {invalid}"
+        display_cols = columns
+    else:
+        display_cols = [sort_by]
+        for c in ["order_id", "customer_state", "product_category_name"]:
+            if c in df.columns and c not in display_cols:
+                display_cols.append(c)
+                if len(display_cols) >= 5:
+                    break
+
+    display_df = top[display_cols].head(_MAX_DISPLAY_ROWS)
+    table = display_df.to_markdown(index=False)
+    trunc = f"\n\n*Showing {min(len(top), _MAX_DISPLAY_ROWS)} of {len(top)} rows.*" if len(top) > _MAX_DISPLAY_ROWS else ""
+    return f"### {order_label} {len(top):,} by `{sort_by}`\n\n{header}{agg_summary}\n{table}{trunc}"
+
+
+# ---------------------------------------------------------------------------
 # Tool registration
 # ---------------------------------------------------------------------------
 
 
 def register(mcp: FastMCP) -> None:
-    """Register 4 dynamic query tools on the MCP server."""
+    """Register 5 dynamic query tools on the MCP server."""
 
     @mcp.tool()
     def dynamic_aggregate(
@@ -146,45 +331,8 @@ def register(mcp: FastMCP) -> None:
 
         Supports: mean, sum, count, min, max, median, std, nunique, value_counts.
         Filter format: [{"column": "customer_state", "op": "eq", "value": "SP"}]
-        Operators: eq, neq, gt, gte, lt, lte, contains, in, notnull.
         """
-        df = DataStore.df()
-        n_total = len(df)
-
-        if column not in df.columns:
-            return f"**Error:** Column '{column}' not found. Available columns:\n{', '.join(sorted(df.columns))}"
-
-        try:
-            df_f, descs = _apply_filters(df, filters)
-        except ValueError as e:
-            return f"**Error:** {e}"
-
-        if agg not in _VALID_AGGS:
-            return f"**Error:** Invalid aggregation '{agg}'. Use one of: {sorted(_VALID_AGGS)}"
-
-        n_filtered = len(df_f)
-        if n_filtered == 0:
-            return f"**No results.** Filters removed all rows.\n\n{_filters_summary(descs, 0, n_total)}"
-
-        header = _filters_summary(descs, n_filtered, n_total)
-
-        if agg == "value_counts":
-            vc = df_f[column].value_counts()
-            if limit:
-                vc = vc.head(limit)
-            result_df = vc.reset_index()
-            result_df.columns = [column, "count"]
-            table = result_df.head(_MAX_DISPLAY_ROWS).to_markdown(index=False)
-            shown = min(len(result_df), _MAX_DISPLAY_ROWS)
-            total_unique = len(vc)
-            trunc = f"\n\n*Showing {shown} of {total_unique} unique values.*" if shown < total_unique else ""
-            return f"### Value Counts: `{column}`\n\n{header}\n{table}{trunc}"
-
-        series = df_f[column]
-        result = getattr(series, agg)()
-        formatted = _format_number(result, column)
-
-        return f"### {agg.capitalize()}: `{column}`\n\n{header}\n**Result:** {formatted}"
+        return _run_aggregate(column, agg, filters, limit)
 
     @mcp.tool()
     def group_by_metrics(
@@ -199,85 +347,8 @@ def register(mcp: FastMCP) -> None:
         """Group data by a column and compute multiple metrics.
 
         metrics format: ["mean:foi_atraso", "sum:price", "count:order_id"]
-        Filter format: [{"column": "customer_state", "op": "eq", "value": "SP"}]
         """
-        df = DataStore.df()
-        n_total = len(df)
-
-        if group_by not in df.columns:
-            return f"**Error:** Column '{group_by}' not found. Available columns:\n{', '.join(sorted(df.columns))}"
-
-        try:
-            df_f, descs = _apply_filters(df, filters)
-        except ValueError as e:
-            return f"**Error:** {e}"
-
-        n_filtered = len(df_f)
-        if n_filtered == 0:
-            return f"**No results.** Filters removed all rows.\n\n{_filters_summary(descs, 0, n_total)}"
-
-        # Parse and validate metrics
-        parsed_metrics: list[tuple[str, str]] = []
-        for m in metrics:
-            try:
-                agg_name, col_name = _parse_metric(m)
-            except ValueError as e:
-                return f"**Error:** {e}"
-            if col_name not in df.columns:
-                return f"**Error:** Column '{col_name}' not found in metric '{m}'."
-            parsed_metrics.append((agg_name, col_name))
-
-        # Build aggregation dict
-        agg_dict: dict[str, list] = {}
-        for agg_name, col_name in parsed_metrics:
-            agg_dict.setdefault(col_name, []).append(agg_name)
-
-        grouped = df_f.groupby(group_by, observed=True).agg(agg_dict)
-
-        # Flatten multi-level columns
-        grouped.columns = [f"{agg}:{col}" for col, agg in grouped.columns]
-        grouped = grouped.reset_index()
-
-        # Apply min_count filter using the first count-type metric or fallback to group size
-        if min_count > 1:
-            count_col = None
-            for agg_name, col_name in parsed_metrics:
-                if agg_name == "count":
-                    count_col = f"count:{col_name}"
-                    break
-            if count_col and count_col in grouped.columns:
-                grouped = grouped[grouped[count_col] >= min_count]
-            else:
-                # Fallback: use group sizes
-                sizes = df_f.groupby(group_by, observed=True).size()
-                valid_groups = sizes[sizes >= min_count].index
-                grouped = grouped[grouped[group_by].isin(valid_groups)]
-
-        # Sort
-        if sort_by:
-            if sort_by in grouped.columns:
-                sort_col = sort_by
-            else:
-                # Try to match metric string like "mean:foi_atraso"
-                sort_col = sort_by if sort_by in grouped.columns else None
-            if sort_col:
-                grouped = grouped.sort_values(sort_col, ascending=(sort_order == "asc"))
-        elif len(parsed_metrics) > 0:
-            first_metric = f"{parsed_metrics[0][0]}:{parsed_metrics[0][1]}"
-            if first_metric in grouped.columns:
-                grouped = grouped.sort_values(first_metric, ascending=False)
-
-        if limit:
-            grouped = grouped.head(limit)
-
-        header = _filters_summary(descs, n_filtered, n_total)
-        n_groups = len(grouped)
-        display_df = grouped.head(_MAX_DISPLAY_ROWS)
-        table = display_df.to_markdown(index=False)
-        trunc = f"\n\n*Showing {min(n_groups, _MAX_DISPLAY_ROWS)} of {n_groups} groups.*" if n_groups > _MAX_DISPLAY_ROWS else ""
-        min_note = f" (min_count={min_count})" if min_count > 1 else ""
-
-        return f"### Group By: `{group_by}`{min_note}\n\n{header}\n{table}{trunc}"
+        return _run_group_by(group_by, metrics, filters, sort_by, sort_order, limit, min_count)
 
     @mcp.tool()
     def top_n_query(
@@ -289,63 +360,58 @@ def register(mcp: FastMCP) -> None:
         agg_column: str | None = None,
         agg: str = "sum",
     ) -> str:
-        """Get top/bottom N rows sorted by a column, optionally aggregate a column over the result.
+        """Get top/bottom N rows sorted by a column, optionally aggregate over the result.
 
         Filter format: [{"column": "customer_state", "op": "eq", "value": "SP"}]
-        columns: which columns to display (default: sort_by + a few context cols).
-        agg_column: if provided, compute agg(agg_column) over the top-N rows.
         """
-        df = DataStore.df()
-        n_total = len(df)
+        return _run_top_n(sort_by, n, sort_order, filters, columns, agg_column, agg)
 
+    @mcp.tool()
+    def batch_query(queries: list[dict]) -> str:
+        """Execute multiple queries (aggregate, group_by, top_n) in a single call.
 
-        if sort_by not in df.columns:
-            return f"**Error:** Column '{sort_by}' not found. Available columns:\n{', '.join(sorted(df.columns))}"
+        'queries' is a list of dicts, each with a 'type' ("aggregate", "group_by", "top_n")
+        and its corresponding arguments. Use this for complex multi-part analyses.
+        """
+        results = []
+        for i, q in enumerate(queries, 1):
+            q_type = q.get("type")
+            try:
+                if q_type == "aggregate":
+                    res = _run_aggregate(
+                        column=q["column"],
+                        agg=q.get("agg", "mean"),
+                        filters=q.get("filters"),
+                        limit=q.get("limit"),
+                    )
+                elif q_type == "group_by":
+                    res = _run_group_by(
+                        group_by=q["group_by"],
+                        metrics=q["metrics"],
+                        filters=q.get("filters"),
+                        sort_by=q.get("sort_by"),
+                        sort_order=q.get("sort_order", "desc"),
+                        limit=q.get("limit"),
+                        min_count=q.get("min_count", 1),
+                    )
+                elif q_type == "top_n":
+                    res = _run_top_n(
+                        sort_by=q["sort_by"],
+                        n=q.get("n", 10),
+                        sort_order=q.get("sort_order", "desc"),
+                        filters=q.get("filters"),
+                        columns=q.get("columns"),
+                        agg_column=q.get("agg_column"),
+                        agg=q.get("agg", "sum"),
+                    )
+                else:
+                    res = f"**Error (query {i}):** Unsupported query type '{q_type}'."
+            except Exception as e:
+                res = f"**Error (query {i}):** {e}"
 
-        try:
-            df_f, descs = _apply_filters(df, filters)
-        except ValueError as e:
-            return f"**Error:** {e}"
+            results.append(f"--- QUERY {i} ({q_type}) ---\n{res}")
 
-        n_filtered = len(df_f)
-        if n_filtered == 0:
-            return f"**No results.** Filters removed all rows.\n\n{_filters_summary(descs, 0, n_total)}"
-
-        top = df_f.sort_values(sort_by, ascending=(sort_order == "asc")).head(n)
-
-        header = _filters_summary(descs, n_filtered, n_total)
-        order_label = "Bottom" if sort_order == "asc" else "Top"
-
-        # Aggregation summary
-        agg_summary = ""
-        if agg_column:
-            if agg_column not in df.columns:
-                return f"**Error:** agg_column '{agg_column}' not found."
-            if agg not in _VALID_AGGS:
-                return f"**Error:** Invalid aggregation '{agg}'."
-            result = getattr(top[agg_column], agg)()
-            formatted = _format_number(result, agg_column)
-            agg_summary = f"\n**{agg.capitalize()}({agg_column}) over {order_label.lower()} {len(top):,}:** {formatted}\n"
-
-        # Select columns for display
-        if columns:
-            invalid = [c for c in columns if c not in df.columns]
-            if invalid:
-                return f"**Error:** Columns not found: {invalid}"
-            display_cols = columns
-        else:
-            display_cols = [sort_by]
-            for c in ["order_id", "customer_state", "product_category_name"]:
-                if c in df.columns and c not in display_cols:
-                    display_cols.append(c)
-                    if len(display_cols) >= 5:
-                        break
-
-        display_df = top[display_cols].head(_MAX_DISPLAY_ROWS)
-        table = display_df.to_markdown(index=False)
-        trunc = f"\n\n*Showing {min(len(top), _MAX_DISPLAY_ROWS)} of {len(top)} rows.*" if len(top) > _MAX_DISPLAY_ROWS else ""
-
-        return f"### {order_label} {len(top):,} by `{sort_by}`\n\n{header}{agg_summary}\n{table}{trunc}"
+        return "\n\n".join(results)
 
     @mcp.tool()
     def compare_groups(
@@ -355,11 +421,7 @@ def register(mcp: FastMCP) -> None:
         group_a_label: str = "Group A",
         group_b_label: str = "Group B",
     ) -> str:
-        """Compare two groups side-by-side on multiple metrics.
-
-        Each group is defined by a set of filters.
-        metrics format: ["mean:foi_atraso", "count:order_id", "mean:price"]
-        """
+        """Compare two groups side-by-side on multiple metrics."""
         df = DataStore.df()
 
         try:
@@ -407,7 +469,6 @@ def register(mcp: FastMCP) -> None:
 
         result_df = pd.DataFrame(rows)
         table = result_df.to_markdown(index=False)
-
         header_a = f"**{group_a_label}:** {', '.join(descs_a) if descs_a else 'all'} ({len(df_a):,} rows)"
         header_b = f"**{group_b_label}:** {', '.join(descs_b) if descs_b else 'all'} ({len(df_b):,} rows)"
 

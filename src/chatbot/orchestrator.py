@@ -117,9 +117,6 @@ async def handle_chat_message(message: str, session_id: str) -> AsyncIterator[st
                 "tool_calls": formatted_tool_calls,
             })
 
-            # Execute each tool via MCP
-            iteration_had_error = False
-
             for tc in tool_calls_accum.values():
                 try:
                     args = json.loads(tc["arguments_str"]) if tc["arguments_str"] else {}
@@ -139,7 +136,6 @@ async def handle_chat_message(message: str, session_id: str) -> AsyncIterator[st
 
                 if is_error:
                     consecutive_errors += 1
-                    iteration_had_error = True
                     logger.warning(
                         "Tool '%s' error (%d/%d consecutive): %s",
                         tc["name"], consecutive_errors,

@@ -1,6 +1,6 @@
 """Dataset & Statistics Tools (5 tools).
 
-Exposes statistics from the unified Olist dataset (109K rows × 58 columns).
+Exposes statistics from the unified Olist dataset (~96K rows × 53 columns).
 """
 
 from fastmcp import FastMCP
@@ -66,12 +66,7 @@ _ENGINEERED_COLUMNS = {
     "mes_compra": ("int64", "Month of purchase (1-12)"),
     "valor_total_pedido": ("float64", "Total order value in BRL"),
     "destino_tipo": ("object", "Destination type: capital/interior"),
-    "ano_mes": ("object", "Year-month string (YYYY-MM)"),
-    "trimestre": ("int64", "Quarter (1-4)"),
-    "ano": ("int64", "Year"),
-    "ano_trimestre": ("object", "Year-quarter string (YYYY-Q#)"),
-    "dias_atraso": ("int64", "Days of delay (positive = late)"),
-    "hora_compra": ("int64", "Hour of purchase (0-23)"),
+    "ano_compra": ("int64", "Year of purchase"),
 }
 
 
@@ -246,7 +241,6 @@ def register(mcp: FastMCP) -> None:
             "Delivery Metrics": [
                 ("foi_atraso", delay_status),
                 ("dias_diferenca", f"{row['dias_diferenca']} days"),
-                ("dias_atraso", f"{row.get('dias_atraso', 0)} days"),
                 ("velocidade_lojista_dias", f"{row['velocidade_lojista_dias']:.1f} days"),
             ],
         }
