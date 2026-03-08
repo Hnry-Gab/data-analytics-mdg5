@@ -301,6 +301,71 @@ def int_to_list(series):
 
 
 @router.get(
+    "/insights/temporal",
+    status_code=status.HTTP_200_OK,
+    summary="Análise temporal de atrasos (conforme notebook dia1_alpha_pipeline)"
+)
+async def get_temporal_insights():
+    """Retorna análises temporais: taxa de atraso por mês, dia da semana e série temporal."""
+    if not data_loader.is_loaded() or data_loader._data is None:
+        return {"error": "Dataset não carregado."}
+
+    df = data_loader._data.copy()
+
+    # Taxa de atraso por mês do ano
+    if 'mes_compra' in df.columns:
+        atraso_mes = df.groupby('mes_compra').agg(
+            total=('order_id', 'count'),
+            taxa_atraso=('delivery_delayed', 'mean')
+        ).reset_index()
+        mes_data = {
+            "meses": atraso_mes['mes_compra'].tolist(),
+            "taxas": [round(x * 100, 1) for x in atraso_mes['taxa_atraso'].tolist()],
+            "totais": atraso_mes['total'].tolist()
+        }
+    else:
+        mes_data = {"meses": [], "taxas": [], "totais": []}
+
+    # Taxa de atraso por dia da semana
+    if 'dia_semana_compra' in df.columns:
+        atraso_dia = df.groupby('dia_semana_compra').agg(
+            total=('order_id', 'count'),
+            taxa_atraso=('delivery_delayed', 'mean')
+        ).reset_index()
+        dia_data = {
+            "dias": atraso_dia['dia_semana_compra'].tolist(),
+            "taxas": [round(x * 100, 1) for x in atraso_dia['taxa_atraso'].tolist()],
+            "totais": atraso_dia['total'].tolist()
+        }
+    else:
+        dia_data = {"dias": [], "taxas": [], "totais": []}
+
+    # Série temporal mensal (evolução ao longo do tempo)
+    if 'order_purchase_timestamp' in df.columns:
+        df['ano_mes'] = df['order_purchase_timestamp'].dt.to_period('M').astype(str)
+        serie_mensal = df.groupby('ano_mes').agg(
+            total=('order_id', 'count'),
+            taxa_atraso=('delivery_delayed', 'mean')
+        ).reset_index()
+        # Filtrar meses com poucos pedidos
+        serie_mensal = serie_mensal[serie_mensal['total'] >= 100]
+
+        serie_data = {
+            "meses": serie_mensal['ano_mes'].tolist(),
+            "taxas": [round(x * 100, 1) for x in serie_mensal['taxa_atraso'].tolist()],
+            "volumes": serie_mensal['total'].tolist()
+        }
+    else:
+        serie_data = {"meses": [], "taxas": [], "volumes": []}
+
+    return {
+        "mes": mes_data,
+        "dia_semana": dia_data,
+        "serie_temporal": serie_data
+    }
+
+
+@router.get(
     "/health",
     response_model=HealthResponse,
     status_code=status.HTTP_200_OK,

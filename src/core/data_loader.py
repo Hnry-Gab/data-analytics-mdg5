@@ -2,6 +2,7 @@
 Carregamento e gerenciamento dos dados históricos (CSV)
 """
 import pandas as pd
+import numpy as np
 from pathlib import Path
 from typing import Optional, Dict
 from src.config import CSV_PATH
@@ -50,19 +51,63 @@ class DataLoader:
             df_customers = pd.read_csv(customers_file)
             df_products = pd.read_csv(products_file) if products_file.exists() else pd.DataFrame()
             df_sellers = pd.read_csv(sellers_file) if sellers_file.exists() else pd.DataFrame()
+
+            # LIMPEZA 1: Filtrar apenas pedidos ENTREGUES (conforme notebook)
+            linhas_antes_filtro = len(df_orders)
+            df_orders = df_orders[df_orders['order_status'] == 'delivered'].copy()
+            logger.info(f"Filtro status='delivered': {linhas_antes_filtro} -> {len(df_orders)} pedidos")
+
+            # LIMPEZA 2: Remover pedidos sem data de entrega real
+            if 'order_delivered_customer_date' in df_orders.columns:
+                nulos_entrega = df_orders['order_delivered_customer_date'].isna().sum()
+                df_orders = df_orders.dropna(subset=['order_delivered_customer_date'])
+                logger.info(f"Removidos {nulos_entrega} pedidos sem data de entrega")
+
+            # LIMPEZA 3: Tratar valores faltantes em produtos
+            if not df_products.empty:
+                # Categoria faltante
+                df_products['product_category_name'] = df_products['product_category_name'].fillna('desconhecido')
+
+                # Dimensões com mediana
+                cols_numericas = ['product_weight_g', 'product_length_cm', 'product_height_cm', 'product_width_cm']
+                for col in cols_numericas:
+                    if col in df_products.columns and df_products[col].isna().sum() > 0:
+                        mediana = df_products[col].median()
+                        df_products[col] = df_products[col].fillna(mediana)
+                        logger.info(f"  {col}: preenchido com mediana = {mediana}")
+
+                logger.info("Tratamento de nulos em products concluído")
             
-            # Merge para pegar Freight (itens) e State (clientes)
+            # MERGE: Unificar todas as tabelas
             df_merged = df_orders.merge(df_items, on="order_id", how="left")
             df_merged = df_merged.merge(df_customers, on="customer_id", how="left")
             if not df_products.empty:
                 df_merged = df_merged.merge(df_products, on="product_id", how="left")
             if not df_sellers.empty:
                 df_merged = df_merged.merge(df_sellers, on="seller_id", how="left")
+
+            # MERGE COM PAYMENTS: Adicionar tipo de pagamento principal
+            payments_file = base_dir / "olist_order_payments_dataset.csv"
+            if payments_file.exists():
+                df_payments = pd.read_csv(payments_file)
+                # Extrair tipo de pagamento principal (maior valor)
+                payments_sorted = df_payments.sort_values(by=['order_id', 'payment_value'], ascending=[True, False])
+                payments_agg = payments_sorted.drop_duplicates(subset=['order_id'], keep='first')[['order_id', 'payment_type']]
+
+                df_merged = df_merged.merge(
+                    payments_agg.rename(columns={'payment_type': 'tipo_pagamento_principal'}),
+                    on='order_id',
+                    how='left'
+                )
+                df_merged['tipo_pagamento_principal'] = df_merged['tipo_pagamento_principal'].fillna('desconhecido')
+                logger.info(f"Merge com payments concluído: tipo_pagamento_principal adicionado")
             
             # Tratar datas
             df_merged['order_purchase_timestamp'] = pd.to_datetime(df_merged['order_purchase_timestamp'])
             df_merged['order_approved_at'] = pd.to_datetime(df_merged['order_approved_at'])
             df_merged['order_delivered_carrier_date'] = pd.to_datetime(df_merged['order_delivered_carrier_date'])
+            df_merged['order_delivered_customer_date'] = pd.to_datetime(df_merged['order_delivered_customer_date'])
+            df_merged['order_estimated_delivery_date'] = pd.to_datetime(df_merged['order_estimated_delivery_date'])
             df_merged['purchase_year'] = df_merged['order_purchase_timestamp'].dt.year
             
             # Feature "delivery_delayed" e Cálculo de Delta Dias
@@ -98,8 +143,126 @@ class DataLoader:
             if 'seller_state' in df_merged.columns:
                 df_merged['seller_regiao'] = df_merged['seller_state'].map(regioes_map)
 
+            # MERGE COM GEOLOCALIZAÇÃO: Adicionar coordenadas de vendedor e cliente
+            geo = self.load_geolocation()
+            if not geo.empty:
+                # Deduplicar geolocalização por CEP (média de lat/lng)
+                geo_agg = (
+                    geo
+                    .groupby('geolocation_zip_code_prefix', as_index=False)
+                    .agg({'geolocation_lat': 'mean', 'geolocation_lng': 'mean'})
+                )
+                logger.info(f"Geolocalização agregada: {len(geo)} -> {len(geo_agg)} CEPs únicos")
+
+                # Merge geolocalização do VENDEDOR
+                df_merged = df_merged.merge(
+                    geo_agg.rename(columns={
+                        'geolocation_zip_code_prefix': 'seller_zip_code_prefix',
+                        'geolocation_lat': 'seller_lat',
+                        'geolocation_lng': 'seller_lng'
+                    }),
+                    on='seller_zip_code_prefix',
+                    how='left'
+                )
+
+                # Merge geolocalização do CLIENTE
+                df_merged = df_merged.merge(
+                    geo_agg.rename(columns={
+                        'geolocation_zip_code_prefix': 'customer_zip_code_prefix',
+                        'geolocation_lat': 'customer_lat',
+                        'geolocation_lng': 'customer_lng'
+                    }),
+                    on='customer_zip_code_prefix',
+                    how='left'
+                )
+
+                # Preencher coordenadas faltantes com mediana
+                for col in ['seller_lat', 'seller_lng', 'customer_lat', 'customer_lng']:
+                    if col in df_merged.columns:
+                        mediana = df_merged[col].median()
+                        df_merged[col] = df_merged[col].fillna(mediana)
+
+                logger.info("Merge com geolocalização concluído")
+
+            # FEATURES DERIVADAS (conforme notebook dia1_alpha_pipeline)
+
+            # Feature 1: frete_ratio
+            df_merged['frete_ratio'] = df_merged['freight_value'] / df_merged['price']
+            df_merged['frete_ratio'] = df_merged['frete_ratio'].replace([np.inf, -np.inf], np.nan).fillna(0)
+
+            # Feature 2: dia_semana_compra (0=Segunda, 6=Domingo)
+            df_merged['dia_semana_compra'] = df_merged['order_purchase_timestamp'].dt.dayofweek
+
+            # Feature 3: rota_interestadual
+            if 'seller_state' in df_merged.columns and 'customer_state' in df_merged.columns:
+                df_merged['rota_interestadual'] = (df_merged['seller_state'] != df_merged['customer_state']).astype(int)
+
+            # Feature 4: total_itens_pedido
+            df_merged['total_itens_pedido'] = df_merged.groupby('order_id')['order_item_id'].transform('max')
+            df_merged['total_itens_pedido'] = df_merged['total_itens_pedido'].fillna(1).astype(int)
+
+            # Feature 5: ticket_medio_alto (>= R$500)
+            df_merged['ticket_medio_alto'] = (df_merged['price'] >= 500.0).astype(int)
+
+            # Feature 6: historico_atraso_seller (expanding window - anti-leakage)
+            df_merged = df_merged.sort_values('order_purchase_timestamp').reset_index(drop=True)
+            df_merged['historico_atraso_seller'] = (
+                df_merged.groupby('seller_id')['delivery_delayed']
+                .transform(lambda x: x.expanding().mean().shift(1))
+            )
+            media_global_atraso = df_merged['delivery_delayed'].mean()
+            df_merged['historico_atraso_seller'] = df_merged['historico_atraso_seller'].fillna(media_global_atraso)
+
+            # Feature 7: velocidade_transportadora_dias
+            if 'order_delivered_customer_date' in df_merged.columns and 'order_delivered_carrier_date' in df_merged.columns:
+                df_merged['velocidade_transportadora_dias'] = (
+                    df_merged['order_delivered_customer_date'] - df_merged['order_delivered_carrier_date']
+                ).dt.days
+                mediana_transp = df_merged['velocidade_transportadora_dias'].median()
+                df_merged['velocidade_transportadora_dias'] = df_merged['velocidade_transportadora_dias'].fillna(mediana_transp)
+
+            # Feature 8: compra_fds (sexta-domingo)
+            df_merged['compra_fds'] = (df_merged['dia_semana_compra'] >= 5).astype(int)
+
+            # Feature 9: mes_compra (1-12)
+            df_merged['mes_compra'] = df_merged['order_purchase_timestamp'].dt.month
+
+            # Feature 10: valor_total_pedido
+            df_merged['valor_total_pedido'] = df_merged['price'] + df_merged['freight_value']
+
+            # Feature 11: destino_tipo (Capital/Interior)
+            capitais = [
+                'rio branco', 'maceio', 'macapa', 'manaus', 'salvador', 'fortaleza', 'brasilia', 'vitoria',
+                'goiania', 'sao luis', 'cuiaba', 'campo grande', 'belo horizonte', 'belem', 'joao pessoa',
+                'curitiba', 'recife', 'teresina', 'rio de janeiro', 'natal', 'porto alegre', 'porto velho',
+                'boa vista', 'florianopolis', 'sao paulo', 'aracaju', 'palmas'
+            ]
+            if 'customer_city' in df_merged.columns:
+                df_merged['destino_tipo'] = np.where(
+                    df_merged['customer_city'].str.lower().isin(capitais),
+                    'Capital',
+                    'Interior'
+                )
+
+            # Feature 12: volume_cm3 (se não existir)
+            if 'volume_cm3' not in df_merged.columns:
+                if all(col in df_merged.columns for col in ['product_length_cm', 'product_height_cm', 'product_width_cm']):
+                    df_merged['volume_cm3'] = (
+                        df_merged['product_length_cm'] *
+                        df_merged['product_height_cm'] *
+                        df_merged['product_width_cm']
+                    )
+
+            logger.info("15 features derivadas criadas conforme notebook")
+
+            # DROPNA FINAL (conforme notebook - limpeza agressiva)
+            linhas_antes_dropna = len(df_merged)
+            df_merged = df_merged.dropna()
+            linhas_dropadas = linhas_antes_dropna - len(df_merged)
+            logger.info(f"Dropna final: {linhas_dropadas} linhas removidas ({linhas_antes_dropna} -> {len(df_merged)})")
+
             self._data = df_merged
-            logger.info(f"Dados históricos carregados: {len(self._data)} linhas (Merged c/ Clientes, Produtos e Sellers)")
+            logger.info(f"Dados históricos carregados: {len(self._data)} linhas (Merged c/ Clientes, Produtos, Sellers, Payments e Geo)")
             return self._data
         except Exception as e:
             logger.error(f"Erro ao agregar csv brutos: {str(e)}")
@@ -139,8 +302,15 @@ class DataLoader:
 
         try:
             logger.info(f"Carregando geolocalização de: {geo_file}")
-            self._geolocation = pd.read_csv(geo_file)
-            logger.info(f"Geolocalização carregada: {len(self._geolocation)} registros")
+            geo_raw = pd.read_csv(geo_file)
+
+            # Deduplicar por CEP (conforme notebook)
+            self._geolocation = (
+                geo_raw
+                .groupby('geolocation_zip_code_prefix', as_index=False)
+                .agg({'geolocation_lat': 'mean', 'geolocation_lng': 'mean'})
+            )
+            logger.info(f"Geolocalização carregada e deduplicada: {len(geo_raw)} -> {len(self._geolocation)} CEPs únicos")
             return self._geolocation
         except Exception as e:
             logger.error(f"Erro ao carregar geolocalização: {str(e)}")
