@@ -32,7 +32,7 @@ def _get_client() -> httpx.AsyncClient:
                 "HTTP-Referer": "https://olist-logistics.app",
                 "X-Title": "Olist Logistics Analytics",
             },
-            timeout=httpx.Timeout(connect=10, read=120, write=10, pool=10),
+            timeout=httpx.Timeout(connect=10, read=300, write=120, pool=10),
         )
     return _http_client
 

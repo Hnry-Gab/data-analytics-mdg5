@@ -9,8 +9,7 @@ import pytest
 
 from olist_mcp import __version__
 from olist_mcp.cache import DataStore
-from olist_mcp.config import DATASET_V1, TIMESTAMP_COLS, ZIP_DTYPE
-from olist_mcp.server import mcp
+from olist_mcp.config import CATBOOST_CONFIG, CATBOOST_MODEL, DATASET_V1, TIMESTAMP_COLS, ZIP_DTYPE
 from olist_mcp.utils.formatters import format_json_safe, format_markdown_table
 from olist_mcp.utils.haversine import haversine_distance
 from olist_mcp.utils.state_mappings import MACRO_REGIONS, REGION_TO_STATES, STATE_TO_REGION
@@ -18,10 +17,14 @@ from olist_mcp.utils.state_mappings import MACRO_REGIONS, REGION_TO_STATES, STAT
 
 class TestConfig:
     def test_version(self):
-        assert __version__ == "0.1.0"
+        assert __version__ == "0.2.0"
 
     def test_dataset_path_exists(self):
         assert DATASET_V1.exists(), f"Dataset not found: {DATASET_V1}"
+
+    def test_catboost_paths_exist(self):
+        assert CATBOOST_MODEL.exists(), f"CatBoost model not found: {CATBOOST_MODEL}"
+        assert CATBOOST_CONFIG.exists(), f"CatBoost config not found: {CATBOOST_CONFIG}"
 
     def test_zip_dtype_keys(self):
         assert "customer_zip_code_prefix" in ZIP_DTYPE
@@ -55,15 +58,18 @@ class TestDataStore:
         df2 = DataStore.df()
         assert df1 is df2
 
-    def test_model_graceful_degradation(self):
-        model = DataStore.model()
-        # Model file doesn't exist, should return None
-        assert model is None
+    def test_catboost_loads(self):
+        model, config = DataStore.catboost()
+        assert model is not None, "CatBoost model failed to load"
+        assert config is not None, "CatBoost config failed to load"
+        assert config["algorithm"] == "CatBoost"
+        assert config["metrics"]["roc_auc"] > 0.8
 
-    def test_correlations_loads(self):
-        corr = DataStore.correlations()
-        assert isinstance(corr, pd.DataFrame)
-        assert len(corr) > 0
+    def test_catboost_cached(self):
+        m1, c1 = DataStore.catboost()
+        m2, c2 = DataStore.catboost()
+        assert m1 is m2
+        assert c1 is c2
 
     def test_thread_safety(self):
         results = []
@@ -145,4 +151,5 @@ class TestFormatters:
 
 class TestServer:
     def test_server_instance(self):
+        from olist_mcp.server import mcp
         assert mcp.name == "olist-analytics-mcp"

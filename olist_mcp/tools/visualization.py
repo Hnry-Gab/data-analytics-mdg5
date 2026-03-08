@@ -259,20 +259,13 @@ def register(mcp: FastMCP) -> None:
         min_abs_correlation: float = 0.0,
     ) -> str:
         """Generate a live bar chart of feature correlations with foi_atraso. Filters by minimum absolute correlation value."""
-        corr_df = DataStore.correlations()
-
-        if corr_df is None or "Valor" not in corr_df.columns:
-            # Compute from main dataset
-            df = DataStore.df()
-            numeric = df.select_dtypes(include="number")
-            if "foi_atraso" not in numeric.columns:
-                return "**Error:** `foi_atraso` column not found in numeric columns."
-            corr = numeric.corr()["foi_atraso"].drop("foi_atraso", errors="ignore")
-            corr_df_plot = corr.reset_index()
-            corr_df_plot.columns = ["feature", "correlation"]
-        else:
-            corr_df_plot = corr_df[["Feature", "Valor"]].copy()
-            corr_df_plot.columns = ["feature", "correlation"]
+        df = DataStore.df()
+        numeric = df.select_dtypes(include="number")
+        if "foi_atraso" not in numeric.columns:
+            return "**Error:** `foi_atraso` column not found in numeric columns."
+        corr = numeric.corr()["foi_atraso"].drop("foi_atraso", errors="ignore")
+        corr_df_plot = corr.reset_index()
+        corr_df_plot.columns = ["feature", "correlation"]
 
         # Filter by minimum absolute correlation
         corr_df_plot = corr_df_plot[

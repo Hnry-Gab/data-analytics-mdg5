@@ -7,7 +7,7 @@ from olist_mcp.server import mcp
 
 
 def _call(tool_name: str, args: dict | None = None) -> str:
-    result = asyncio.run(mcp.call_tool(tool_name, args or {}))
+    result = asyncio.get_event_loop().run_until_complete(mcp.call_tool(tool_name, args or {}))
     return result.content[0].text
 
 
