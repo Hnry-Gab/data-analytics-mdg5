@@ -4,12 +4,9 @@ from fastmcp import FastMCP
 
 from olist_mcp.tools import (
     business_insights,
+    catboost_ml,
     dataset_stats,
-    documentation,
-    geographic,
-    ml_model,
-    query_filter,
-    temporal,
+    dynamic_query,
     visualization,
 )
 
@@ -17,20 +14,17 @@ mcp = FastMCP(
     name="olist-analytics-mcp",
     instructions=(
         "MCP server for Olist Brazilian e-commerce analytics. "
-        "Provides tools for dataset statistics, geographic analysis, "
-        "ML predictions, business insights, temporal analysis, "
-        "documentation, visualization, and data querying."
+        "22 tools: dynamic queries (aggregate, group_by, top_n, compare), "
+        "CatBoost V5 ML (predict, model_info, feature_importance, simulate), "
+        "dataset stats, business insights, and visualization."
     ),
 )
 
-# Register tool modules
+# Register tool modules (5 modules, 22 tools total)
 dataset_stats.register(mcp)
-documentation.register(mcp)
-geographic.register(mcp)
-temporal.register(mcp)
+dynamic_query.register(mcp)
+catboost_ml.register(mcp)
 business_insights.register(mcp)
-ml_model.register(mcp)
-query_filter.register(mcp)
 visualization.register(mcp)
 
 if __name__ == "__main__":

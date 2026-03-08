@@ -149,4 +149,7 @@ class TestFormatters:
         assert "Showing 10 of 100" in md
 
 
-## TestServer removed: server.py still imports old tool modules (will be fixed in Window 4)
+class TestServer:
+    def test_server_instance(self):
+        from olist_mcp.server import mcp
+        assert mcp.name == "olist-analytics-mcp"

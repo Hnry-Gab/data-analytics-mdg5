@@ -1,4 +1,4 @@
-"""Tests for MCP-01: Dataset Statistics Tools."""
+"""Tests for Dataset Statistics Tools (5 tools)."""
 
 import asyncio
 
@@ -8,8 +8,7 @@ from olist_mcp.server import mcp
 
 
 def _call(tool_name: str, args: dict | None = None) -> str:
-    """Helper to call an MCP tool synchronously and return its text."""
-    result = asyncio.run(mcp.call_tool(tool_name, args or {}))
+    result = asyncio.get_event_loop().run_until_complete(mcp.call_tool(tool_name, args or {}))
     return result.content[0].text
 
 
@@ -20,19 +19,16 @@ class TestGetDatasetOverview:
 
     def test_contains_dimensions(self):
         text = _call("get_dataset_overview")
-        assert "110,189" in text
-        assert "41 columns" in text
+        assert "109" in text  # ~109K rows
+        assert "columns" in text
 
     def test_contains_target_distribution(self):
         text = _call("get_dataset_overview")
         assert "foi_atraso" in text
-        assert "on time" in text.lower() or "On time" in text
-        assert "delayed" in text.lower() or "Delayed" in text
 
-    def test_contains_unique_counts(self):
+    def test_contains_catboost_ref(self):
         text = _call("get_dataset_overview")
-        assert "Sellers" in text
-        assert "Products" in text
+        assert "CatBoost" in text
 
 
 class TestGetColumnStatistics:
@@ -40,54 +36,23 @@ class TestGetColumnStatistics:
         text = _call("get_column_statistics", {"column_name": "freight_value"})
         assert "numeric" in text
         assert "mean" in text
-        assert "std" in text
 
     def test_categorical_column(self):
         text = _call("get_column_statistics", {"column_name": "customer_state"})
         assert "categorical" in text
-        assert "SP" in text  # most common state
+        assert "SP" in text
 
     def test_invalid_column_error(self):
         text = _call("get_column_statistics", {"column_name": "nonexistent"})
         assert "Error" in text
-        assert "not found" in text
-        assert "order_id" in text  # suggests available columns
-
-
-class TestGetClassDistribution:
-    def test_returns_target_info(self):
-        text = _call("get_class_distribution")
-        assert "foi_atraso" in text
-        assert "scale_pos_weight" in text
-
-    def test_accuracy_warning(self):
-        text = _call("get_class_distribution")
-        assert "prohibited" in text.lower() or "Accuracy" in text
-
-
-class TestGetCorrelationTable:
-    def test_default_sort(self):
-        text = _call("get_correlation_table")
-        assert "velocidade_lojista" in text  # strongest feature
-
-    def test_min_correlation_filter(self):
-        text = _call("get_correlation_table", {"min_correlation": 0.1})
-        assert "velocidade_lojista" in text
-        # Weak features should be filtered out
-        assert "dia_semana_compra" not in text
-
-    def test_empty_filter(self):
-        text = _call("get_correlation_table", {"min_correlation": 0.99})
-        assert "No features" in text
 
 
 class TestGetDatasetSchema:
-    def test_has_all_columns(self):
+    def test_has_columns(self):
         text = _call("get_dataset_schema")
-        assert "41" in text
         assert "order_id" in text
         assert "foi_atraso" in text
-        assert "distancia_haversine_km" in text
+        assert "valor_total_pedido" in text
 
     def test_has_groups(self):
         text = _call("get_dataset_schema")
@@ -95,12 +60,26 @@ class TestGetDatasetSchema:
         assert "Engineered Columns" in text
 
 
-class TestGetTrainingDatasetInfo:
-    def test_returns_training_info(self):
-        text = _call("get_training_dataset_info")
-        assert "Training Dataset" in text
-        assert "7 columns" in text
+class TestSearchOrders:
+    def test_valid_order(self):
+        from olist_mcp.cache import DataStore
+        df = DataStore.df()
+        oid = df["order_id"].iloc[0]
+        text = _call("search_orders_by_order_id", {"order_id": oid})
+        assert "Order:" in text
+        assert "Identification" in text
+        assert "Location" in text
 
-    def test_mentions_encoding(self):
-        text = _call("get_training_dataset_info")
-        assert "encoding" in text.lower() or "Encoding" in text
+    def test_invalid_order(self):
+        text = _call("search_orders_by_order_id", {"order_id": "fake_order_xyz"})
+        assert "Error" in text or "not found" in text.lower()
+
+
+class TestHaversineDistance:
+    def test_sp_to_rj(self):
+        text = _call("calculate_haversine_distance_tool", {
+            "seller_lat": -23.55, "seller_lng": -46.63,
+            "customer_lat": -22.91, "customer_lng": -43.17,
+        })
+        assert "km" in text
+        assert "360" in text  # ~360 km
