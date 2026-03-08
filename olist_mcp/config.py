@@ -4,10 +4,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
 
-DATASET_V1 = ROOT / "notebooks" / "final_analysis" / "log" / "dataset_unificado_v1.csv"
-DATASET_TREINO = ROOT / "notebooks" / "final_analysis" / "dataset_treino_v1.csv"
-CORRELATIONS_CSV = ROOT / "notebooks" / "final_analysis" / "tabela_resumo_correlacoes.csv"
-MODEL_PKL = ROOT / "models" / "xgboost_atraso_v1.pkl"
+DATASET_V1 = ROOT / "notebooks" / "individual" / "Lucas" / "dataset_unificado_v1.csv"
+CATBOOST_MODEL = ROOT / "models" / "v5" / "catboost_atraso_v5.cbm"
+CATBOOST_CONFIG = ROOT / "models" / "v5" / "model_config.json"
 IMAGES_DIR = ROOT / "notebooks" / "final_analysis" / "images"
 HTML_DIR = ROOT / "notebooks" / "final_analysis"
 DOCS_DIR = ROOT / "docs"
