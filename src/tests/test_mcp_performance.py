@@ -20,7 +20,7 @@ def _warm_cache():
 
 def _timed_call(tool_name: str, args: dict | None = None) -> tuple[str, float]:
     start = time.perf_counter()
-    result = asyncio.get_event_loop().run_until_complete(mcp.call_tool(tool_name, args or {}))
+    result = asyncio.run(mcp.call_tool(tool_name, args or {}))
     elapsed_ms = (time.perf_counter() - start) * 1000
     return result.content[0].text, elapsed_ms
 

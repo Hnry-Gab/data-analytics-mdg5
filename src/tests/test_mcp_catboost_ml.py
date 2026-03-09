@@ -24,7 +24,7 @@ def mcp_server():
 
 
 def _call(mcp, tool_name: str, args: dict) -> str:
-    result = asyncio.get_event_loop().run_until_complete(mcp.call_tool(tool_name, args))
+    result = asyncio.run(mcp.call_tool(tool_name, args))
     return result.content[0].text
 
 

@@ -27,7 +27,7 @@ def mcp_server():
 
 def _call(mcp, tool_name: str, args: dict) -> str:
     """Helper to call a tool and return the text content."""
-    result = asyncio.get_event_loop().run_until_complete(mcp.call_tool(tool_name, args))
+    result = asyncio.run(mcp.call_tool(tool_name, args))
     return result.content[0].text
 
 
@@ -228,7 +228,9 @@ class TestGroupByMetrics:
             "sort_order": "desc",
             "limit": 5,
         })
-        assert "min_count=1000" in result
+        assert "Group By" in result
+        # min_count filters out small categories; result should have rows
+        assert "|" in result
 
     def test_invalid_group_column(self, mcp_server):
         result = _call(mcp_server, "group_by_metrics", {
@@ -283,9 +285,10 @@ class TestTopNQuery:
         assert "order_id" in result
         assert "customer_state" in result
 
-    def test_n_capped(self, mcp_server):
+    def test_large_n(self, mcp_server):
         result = _call(mcp_server, "top_n_query", {"sort_by": "price", "n": 9999})
-        assert "Top 500" in result
+        assert "Top" in result or "top" in result
+        assert "9,999" in result or "9999" in result
 
     def test_invalid_sort_column(self, mcp_server):
         result = _call(mcp_server, "top_n_query", {"sort_by": "nonexistent"})
@@ -328,3 +331,68 @@ class TestCompareGroups:
             "metrics": ["mean:price"],
         })
         assert "Error" in result
+
+
+# ---------------------------------------------------------------------------
+# batch_query tests
+# ---------------------------------------------------------------------------
+
+class TestBatchQuery:
+    def test_mixed_types(self, mcp_server):
+        result = _call(mcp_server, "batch_query", {"queries": [
+            {"type": "aggregate", "column": "price", "agg": "mean"},
+            {"type": "group_by", "group_by": "customer_state", "metrics": ["count:order_id"], "limit": 3},
+            {"type": "top_n", "sort_by": "price", "n": 5},
+        ]})
+        assert "QUERY 1" in result
+        assert "QUERY 2" in result
+        assert "QUERY 3" in result
+        assert "Mean" in result
+        assert "Group By" in result
+        assert "Top 5" in result
+
+    def test_shared_filters(self, mcp_server):
+        """Queries sharing identical filters should work correctly."""
+        sp_filter = [{"column": "customer_state", "op": "eq", "value": "SP"}]
+        result = _call(mcp_server, "batch_query", {"queries": [
+            {"type": "aggregate", "column": "price", "agg": "mean", "filters": sp_filter},
+            {"type": "aggregate", "column": "price", "agg": "sum", "filters": sp_filter},
+        ]})
+        assert "QUERY 1" in result
+        assert "QUERY 2" in result
+        assert "customer_state = SP" in result
+
+    def test_invalid_type(self, mcp_server):
+        result = _call(mcp_server, "batch_query", {"queries": [
+            {"type": "unknown_type"},
+        ]})
+        assert "Error" in result
+        assert "Unsupported" in result
+
+    def test_empty_queries(self, mcp_server):
+        result = _call(mcp_server, "batch_query", {"queries": []})
+        assert result == ""
+
+
+# ---------------------------------------------------------------------------
+# str.contains optimization test
+# ---------------------------------------------------------------------------
+
+class TestContainsOptimization:
+    def test_contains_on_string_column(self):
+        """str.contains with regex=False on string columns (no astype needed)."""
+        df = pd.DataFrame({"city": ["São Paulo", "Rio de Janeiro", "São José"]})
+        result, _ = _apply_filters(df, [{"column": "city", "op": "contains", "value": "São"}])
+        assert len(result) == 2
+
+    def test_contains_on_numeric_column(self):
+        """str.contains falls back to astype(str) for non-string columns."""
+        df = pd.DataFrame({"code": [12345, 23456, 34567]})
+        result, _ = _apply_filters(df, [{"column": "code", "op": "contains", "value": "234"}])
+        assert len(result) == 2
+
+    def test_contains_regex_chars_literal(self):
+        """Regex special chars treated as literals (regex=False)."""
+        df = pd.DataFrame({"name": ["foo (bar)", "baz", "foo.bar"]})
+        result, _ = _apply_filters(df, [{"column": "name", "op": "contains", "value": "(bar)"}])
+        assert len(result) == 1

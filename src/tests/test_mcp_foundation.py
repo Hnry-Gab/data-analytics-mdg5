@@ -47,7 +47,7 @@ class TestDataStore:
 
     def test_df_zip_as_string(self):
         df = DataStore.df()
-        assert df["customer_zip_code_prefix"].dtype == object
+        assert pd.api.types.is_string_dtype(df["customer_zip_code_prefix"])
 
     def test_df_timestamps_parsed(self):
         df = DataStore.df()

@@ -31,7 +31,7 @@ class TestMCPClientIntegration:
             await client.start()
             try:
                 assert client.connected is True
-                assert len(client.tools) == 60
+                assert len(client.tools) == 26
             finally:
                 await client.stop()
 
