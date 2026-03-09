@@ -164,6 +164,21 @@ async def get_dashboard_stats(state: str = None, year: int = None):
         "y": [round(v, 1) for v in timeline_df.values]
     }
 
+    # 6. Scatter (Price vs Freight, real data)
+    scatter_cols = ['price', 'freight_value', target_col]
+    df_scatter = df.dropna(subset=scatter_cols)
+    df_scatter = df_scatter[(df_scatter['price'] > 0) & (df_scatter['price'] < 3000) & (df_scatter['freight_value'] > 0) & (df_scatter['freight_value'] < 300)]
+    if len(df_scatter) > 1500:
+        df_scatter = df_scatter.sample(1500, random_state=42)
+    on_time = df_scatter[df_scatter[target_col] == 0]
+    delayed = df_scatter[df_scatter[target_col] == 1]
+    scatter_data = {
+        "on_time_x": on_time['price'].round(2).tolist(),
+        "on_time_y": on_time['freight_value'].round(2).tolist(),
+        "delayed_x": delayed['price'].round(2).tolist(),
+        "delayed_y": delayed['freight_value'].round(2).tolist(),
+    }
+
     return {
         "total_orders": total_orders,
         "delayed_orders": delayed_orders,
@@ -173,7 +188,8 @@ async def get_dashboard_stats(state: str = None, year: int = None):
         "delta_days": round(avg_delta, 1),
         "map_data": map_data,
         "ranking_data": ranking_data,
-        "timeline_data": timeline_data
+        "timeline_data": timeline_data,
+        "scatter_data": scatter_data,
     }
 
 @router.get(
