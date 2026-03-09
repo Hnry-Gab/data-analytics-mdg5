@@ -29,4 +29,4 @@ EXPOSE 8000
 
 # Comando para rodar a aplicação em produção
 # Usamos workers para melhor performance
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
+CMD ["uvicorn", "src.backend.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
