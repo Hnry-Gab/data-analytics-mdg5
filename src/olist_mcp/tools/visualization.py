@@ -10,8 +10,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 from fastmcp import FastMCP
 
-from olist_mcp.cache import DataStore
-from olist_mcp.config import IMAGES_DIR, HTML_DIR
+from ..cache import DataStore
+from ..config import IMAGES_DIR, HTML_DIR
 
 
 def _fig_to_base64(fig: go.Figure) -> str | None:
@@ -307,7 +307,7 @@ def register(mcp: FastMCP) -> None:
         """Generate a heatmap of delay rates by seller×customer location. Level can be 'state' or 'macro_region'."""
         df = DataStore.df()
 
-        from olist_mcp.utils.state_mappings import STATE_TO_REGION
+        from ..utils.state_mappings import STATE_TO_REGION
 
         if level == "macro_region":
             df = df.copy()

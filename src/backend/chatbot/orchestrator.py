@@ -5,7 +5,9 @@ import json
 import logging
 from collections.abc import AsyncIterator
 
-from backend.chatbot.config import MAX_CONSECUTIVE_TOOL_ERRORS, MAX_TOOL_ITERATIONS, OPENROUTER_API_KEY
+import re
+
+from backend.chatbot.config import MAX_CONSECUTIVE_TOOL_ERRORS, MAX_TOOL_ITERATIONS, MAX_TOOL_RESULT_CHARS, OPENROUTER_API_KEY
 from backend.chatbot.mcp_client import mcp_client
 from backend.chatbot.openrouter_client import stream_chat_completion
 from backend.chatbot.session_manager import session_manager
@@ -41,7 +43,6 @@ def _is_tool_error(result: str) -> bool:
     # For batch results: count error vs success sections.
     # Only check within "--- QUERY" delimited batch output to avoid false positives.
     if "--- QUERY" in result and "**Error:**" in result:
-        import re
         total_sections = result.count("--- QUERY")
         error_sections = len(re.findall(r"--- QUERY \d+.*?\n\*\*Error:\*\*", result))
         if total_sections > 0 and error_sections > 0:
@@ -84,8 +85,10 @@ async def handle_chat_message(message: str, session_id: str) -> AsyncIterator[st
 
     # 3. Agentic loop
     consecutive_errors = 0
+    consecutive_empty = 0
     last_tool_signature: str | None = None
     repeated_call_count = 0
+    MAX_REPEATED_CALLS = 1  # Break after 1 repeat (2nd identical call)
 
     for iteration in range(MAX_TOOL_ITERATIONS):
         messages = session_manager.get_or_create(session_id)
@@ -167,25 +170,43 @@ async def handle_chat_message(message: str, session_id: str) -> AsyncIterator[st
                 repeated_call_count = 0
                 last_tool_signature = call_signature
 
-            if repeated_call_count >= MAX_CONSECUTIVE_TOOL_ERRORS:
-                error_msg = (
-                    f"O LLM repetiu a mesma chamada de ferramenta {repeated_call_count + 1} vezes. "
-                    "Encerrando loop para evitar desperdício."
+            if repeated_call_count >= MAX_REPEATED_CALLS:
+                logger.warning(
+                    "LLM repeated identical tool call %d times — injecting nudge",
+                    repeated_call_count + 1,
                 )
-                logger.error("Aborting tool loop: repeated identical tool call %d times", repeated_call_count + 1)
-                yield _make_sse("error", {"message": error_msg})
-                session_manager.append(session_id, {
-                    "role": "assistant",
-                    "content": f"⚠️ {error_msg}",
-                })
-                break
+                # Don't execute the tool again. Instead, add dummy tool
+                # responses and a nudge so the LLM uses data it already has.
+                for tc in tool_calls_accum.values():
+                    session_manager.append(session_id, {
+                        "role": "tool",
+                        "tool_call_id": tc["id"],
+                        "name": tc["name"],
+                        "content": (
+                            "⚠️ Chamada duplicada bloqueada. Os dados já foram retornados na chamada anterior. "
+                            "Use os resultados que você já possui para responder ao usuário. "
+                            "NÃO chame ferramentas novamente — responda diretamente com texto."
+                        ),
+                    })
+                continue  # Let LLM process the nudge
 
             for tc in tool_calls_accum.values():
                 try:
                     args = json.loads(tc["arguments_str"]) if tc["arguments_str"] else {}
                 except json.JSONDecodeError:
-                    args = {}
                     logger.warning("Bad tool args JSON: %s", tc["arguments_str"][:200])
+                    # Tell the LLM about the malformed args so it can self-correct
+                    session_manager.append(session_id, {
+                        "role": "tool",
+                        "tool_call_id": tc["id"],
+                        "name": tc["name"],
+                        "content": (
+                            f"[MCP error] Malformed JSON arguments: {tc['arguments_str'][:200]}. "
+                            "Please fix the JSON syntax and retry."
+                        ),
+                    })
+                    consecutive_errors += 1
+                    continue
 
                 yield _make_sse("tool_call", {
                     "name": tc["name"],
@@ -209,7 +230,6 @@ async def handle_chat_message(message: str, session_id: str) -> AsyncIterator[st
                     # Partial batch failure: some sub-queries failed but majority succeeded.
                     # Extract which queries failed and tell the LLM specifically.
                     consecutive_errors = 0
-                    import re
                     failed = re.findall(
                         r"--- QUERY (\d+).*?\n\*\*Error:\*\*\s*(.+?)(?:\n|$)",
                         result,
@@ -231,11 +251,16 @@ async def handle_chat_message(message: str, session_id: str) -> AsyncIterator[st
                     "content": result[:2000],
                 })
 
+                # Cap result size to prevent context bloat
+                capped_result = result[:MAX_TOOL_RESULT_CHARS] if len(result) > MAX_TOOL_RESULT_CHARS else result
+                if len(result) > MAX_TOOL_RESULT_CHARS:
+                    capped_result += f"\n\n⚠️ [Result truncated from {len(result):,} to {MAX_TOOL_RESULT_CHARS:,} chars]"
+
                 session_manager.append(session_id, {
                     "role": "tool",
                     "tool_call_id": tc["id"],
                     "name": tc["name"],
-                    "content": result,
+                    "content": capped_result,
                 })
 
             # Check if we hit the consecutive error limit
@@ -268,12 +293,23 @@ async def handle_chat_message(message: str, session_id: str) -> AsyncIterator[st
 
         # LLM returned empty after processing tool results — nudge it to respond
         if iteration > 0 and not full_content:
-            logger.warning("LLM returned empty response after tool calls (iteration %d), nudging", iteration)
+            consecutive_empty += 1
+            logger.warning("LLM returned empty response (iteration %d, nudge %d)", iteration, consecutive_empty)
+
+            if consecutive_empty >= 2:
+                error_msg = "Desculpe, não consegui gerar uma resposta. Por favor, tente reformular sua pergunta."
+                yield _make_sse("error", {"message": error_msg})
+                session_manager.append(session_id, {
+                    "role": "assistant",
+                    "content": f"⚠️ {error_msg}",
+                })
+                break
+
             session_manager.append(session_id, {
                 "role": "user",
                 "content": (
-                    "You received tool results above but did not produce a response. "
-                    "Please summarize the results and answer the user's question."
+                    "Você recebeu os resultados das ferramentas acima mas não gerou uma resposta. "
+                    "Por favor, resuma os resultados e responda à pergunta do usuário."
                 ),
             })
             continue

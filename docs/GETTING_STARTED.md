@@ -87,7 +87,7 @@ Reinicie o Claude Desktop. As 22 tools aparecerão automaticamente.
 ### Integrar com Claude Code
 
 ```bash
-claude mcp add olist-analytics -- python -m olist_mcp.server
+claude mcp add olist-analytics -- python -m src.olist_mcp.server
 ```
 
 ---

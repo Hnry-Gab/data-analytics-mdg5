@@ -6,8 +6,8 @@ Executive summary and seller profiling.
 import pandas as pd
 from fastmcp import FastMCP
 
-from olist_mcp.cache import DataStore
-from olist_mcp.utils.state_mappings import STATE_TO_REGION
+from ..cache import DataStore
+from ..utils.state_mappings import STATE_TO_REGION
 
 
 def register(mcp: FastMCP) -> None:

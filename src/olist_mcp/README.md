@@ -21,7 +21,7 @@ pip install -r olist_mcp/requirements.txt
 ### Run the Server
 
 ```bash
-python -m olist_mcp.server
+python -m src.olist_mcp.server
 ```
 
 The server uses **stdio transport** (no network configuration needed). It starts as a subprocess managed by the MCP client.
@@ -38,7 +38,7 @@ Add the following to your Claude Desktop configuration file:
   "mcpServers": {
     "olist-analytics": {
       "command": "python",
-      "args": ["-m", "olist_mcp.server"],
+      "args": ["-m", "src.olist_mcp.server"],
       "cwd": "/absolute/path/to/data-analytics-mdg5"
     }
   }
@@ -56,7 +56,7 @@ Add to `.claude/settings.json` or use the CLI:
   "mcpServers": {
     "olist-analytics": {
       "command": "python",
-      "args": ["-m", "olist_mcp.server"],
+      "args": ["-m", "src.olist_mcp.server"],
       "cwd": "/absolute/path/to/data-analytics-mdg5"
     }
   }

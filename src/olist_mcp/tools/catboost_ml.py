@@ -11,7 +11,7 @@ from datetime import datetime
 import pandas as pd
 from fastmcp import FastMCP
 
-from olist_mcp.cache import DataStore
+from ..cache import DataStore
 
 # ---------------------------------------------------------------------------
 # Constants

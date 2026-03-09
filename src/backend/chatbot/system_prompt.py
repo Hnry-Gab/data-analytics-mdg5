@@ -68,7 +68,7 @@ Inside `batch_query`, each sub-query must have a `"type"` field. Valid types:
 - `"group_by"` — params: `group_by` (required), `metrics` (required), `filters`, `sort_by`, `sort_order`, `limit`, `min_count`
 - `"top_n"` — params: `sort_by` (required), `n`, `sort_order`, `filters`, `columns`
 
-**Do NOT use tool names as types** (e.g., `"dynamic_aggregate"` or `"group_by_metrics"` will fail).
+You may also use tool names as type aliases: `"dynamic_aggregate"` → `"aggregate"`, `"group_by_metrics"` → `"group_by"`, `"top_n_query"` → `"top_n"`.
 
 Example:
 ```json

@@ -13,7 +13,7 @@ from typing import Any
 import pandas as pd
 from fastmcp import FastMCP
 
-from olist_mcp.cache import DataStore
+from ..cache import DataStore
 
 logger = logging.getLogger(__name__)
 
@@ -381,7 +381,7 @@ def register(mcp: FastMCP) -> None:
                 "dynamic_aggregate": "aggregate",
                 "group_by_metrics": "group_by",
                 "top_n_query": "top_n",
-            }.get(q_type, q_type)
+            }.get(q_type, q_type) or ""
             try:
                 if q_type == "aggregate":
                     res = _run_aggregate(
