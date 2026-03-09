@@ -98,3 +98,44 @@ Tabela auxiliar essencial para gerar insights de mapeamento logístico numérico
 Tabela auxiliar "Tabela de/Para".
 *   **`product_category_name`**: Nome raiz listado no Brasil (em Pt-Br).
 *   **`product_category_name_english`**: A conversão do nome acima para o Inglês, ótimo se for rodar algoritmos que preferem labels anglo-saxões (Ex: _beleza_saude_ -> _health_beauty_).
+
+---
+
+## 10. Features Engenheiradas (Calculadas pelo Pipeline)
+
+Estas colunas são criadas durante o pipeline de feature engineering e fazem parte do dataset final unificado (`dataset_unificado_v1.csv`).
+
+### 10.1 Variável Alvo e Métricas de Atraso
+*   **`dias_diferenca`** (`Int64`): Diferença em dias entre a data real de entrega e a data estimada. Valores positivos indicam atraso.
+*   **`foi_atraso`** (`Int64`): **Variável alvo (TARGET)**. `1` se o pedido atrasou, `0` se chegou no prazo.
+*   **`dias_atraso`** (`Int64`): Dias de atraso efetivo (0 se no prazo).
+
+### 10.2 Features Físicas e Financeiras
+*   **`volume_cm3`** (`Float64`): Volume do pacote em cm³ (`product_length_cm × product_height_cm × product_width_cm`).
+*   **`frete_ratio`** (`Float64`): Proporção frete/preço (`freight_value / price`).
+*   **`valor_total_pedido`** (`Float64`): Valor total do pedido (`price + freight_value`).
+*   **`total_itens_pedido`** (`Int64`): Número de itens do pedido (contagem por `order_id`).
+*   **`ticket_medio_alto`** (`Int64`): Flag indicando se o pedido tem ticket acima da mediana.
+
+### 10.3 Features Temporais
+*   **`velocidade_lojista_dias`** (`Float64`): Dias entre aprovação do pagamento e entrega à transportadora. **Feature mais importante do modelo** (Pearson +0.2143 com atraso).
+*   **`velocidade_transportadora_dias`** (`Float64`): Dias entre a postagem na transportadora e a entrega ao cliente.
+*   **`dia_semana_compra`** (`Int64`): Dia da semana da compra (0=Segunda, 6=Domingo).
+*   **`compra_fds`** (`Int64`): Flag de compra realizada no fim de semana (sábado ou domingo).
+*   **`mes_compra`** (`Int64`): Mês da compra (1–12).
+*   **`hora_compra`** (`Int64`): Hora da compra (0–23).
+*   **`ano_compra`** (`Int64`): Ano da compra.
+*   **`ano`** (`Int64`): Ano (redundante com `ano_compra`).
+*   **`trimestre`** (`Int64`): Trimestre do ano (1–4).
+*   **`ano_mes`** (`string`): Período no formato `YYYY-MM`.
+*   **`ano_trimestre`** (`string`): Período no formato `YYYY-QN`.
+
+### 10.4 Features Geográficas e de Rota
+*   **`rota_interestadual`** (`Int64`): Flag indicando rota interestadual (`1` se `seller_state ≠ customer_state`).
+*   **`distancia_haversine_km`** (`Float64`): Distância geodésica em km entre vendedor e cliente, calculada via fórmula de Haversine sobre as coordenadas lat/lng.
+*   **`seller_regiao`** (`string`): Macro-região do vendedor derivada do primeiro dígito do CEP.
+*   **`customer_regiao`** (`string`): Macro-região do cliente derivada do primeiro dígito do CEP.
+*   **`destino_tipo`** (`string`): Classificação do destino (capital, interior, etc.).
+
+### 10.5 Features do Vendedor
+*   **`historico_atraso_seller`** (`Float64`): Taxa histórica de atraso do vendedor (proporção de pedidos atrasados sobre o total).

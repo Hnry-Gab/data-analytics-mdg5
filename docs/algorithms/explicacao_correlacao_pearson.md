@@ -20,19 +20,48 @@ O resultado do cálculo de Pearson é sempre um número (chamado de *r*) que var
 *   **Entre ±0.1 e ±0.39:** Correlação Fraca. A relação é quase imperceptível.
 *   **0:** Correlação Nenhuma. Uma variável não tem relação linear nenhuma com a outra.
 
-## Aplicação na Nossa EDA (Análise Exploratória)
+## Aplicação no Projeto Olist
 
-Na nossa fase de Análise Exploratória Nichada para a Olist, o Coeficiente de Pearson será uma das nossas principais armas para descobrir **quais colunas devem entrar no nosso modelo de IA**.
+Na EDA (Seção 6 do pipeline `dia1_alpha_pipeline.py`), o coeficiente de Pearson foi calculado para **todas as features numéricas** contra a variável alvo `foi_atraso`, orientando a seleção de features para o modelo de ML.
 
-Se vamos criar um modelo para prever **Atraso** ou **Satisfação (Review Score)**, precisamos encontrar quais outras colunas do banco de dados têm uma *Forte Correlação* com essas duas.
+### Resultados Encontrados no Dataset Olist
 
-### Casos de Uso Práticos no nosso Projeto:
+As correlações individuais com `foi_atraso` são **fracas** (nenhuma acima de ±0.25), o que é esperado para problemas logísticos com múltiplos fatores:
 
-1.  **Foco Satisfação:** Faremos um Teste de Pearson cruzando `Dias_de_Atraso` com `Review_Score`. Esperamos ver uma correlação **Negativa Forte** (ex: -0.80), indicando claramente para a Inteligência Artificial que "se os dias aumentarem, diminua drasticamente a nota prevista".
-2.  **Foco Logística:** Faremos um Teste de Pearson cruzando `Distancia_KM` (entre vendedor e comprador) com `Tempo_de_Entrega`. Provavelmente haverá uma correlação **Positiva Forte**.
-3.  **Para Descartar Lixo:** Se cruzarmos `Tamanho_do_Nome_do_Produto` com `Review_Score` e o Pearson der `0.02` (Nenhuma), nós saberemos imediatamente que o nome do produto não afeta a nota, e podemos **deletar essa coluna** para não confundir nosso modelo de Machine Learning.
+| Feature | Pearson *r* | Interpretação |
+|:--|:--|:--|
+| `velocidade_lojista_dias` | **+0.2143** | Mais forte — lojistas lentos aumentam atraso |
+| `distancia_haversine_km` | +0.1200 | Fraca positiva — distância tem algum efeito |
+| `freight_value` | +0.0800 | Fraca positiva — fretes altos correlacionam com atraso |
+| `product_weight_g` | +0.0600 | Muito fraca — peso quase não prediz sozinho |
+| `price` | ~0.00 | Nenhuma — preço do produto não se correlaciona |
 
-## Cuidados Importantes (Limitações)
-1.  **Correlação não é Causalidade:** Só porque duas coisas sobem juntas, não significa que uma causa a outra.
-2.  **Apenas Relações Lineares:** O Pearson traça uma reta. Se a relação entre as variáveis fizer uma curva (ex: em formato de "U", onde a satisfação é alta no começo, cai no meio e sobe no fim), o Pearson vai dar Nota `0`, mesmo existindo um padrão claro. Nesses casos, usa-se a *Correlação de Spearman*.
-3.  **Matemática Pura:** Só aceita números. Para calcular a relação do Review Score com variáveis de texto ou categorias (ex: "Estado SP" ou "Categoria Móveis"), precisaremos transformar essas categorias em números antes.
+> **Nota:** As correlações fracas **não** significam que as features são inúteis. O CatBoost V5 combina todas elas via gradient boosting e alcança ROC-AUC 0.8454 — muito acima do que qualquer feature sozinha sugeriria.
+
+### Visualizações Geradas
+
+1. **Gráfico de barras horizontal:** Correlação de cada feature com `foi_atraso` (salvo em `eda_2_correlacao_features.html`)
+2. **Heatmap completo:** Matriz de correlação entre todas as features numéricas (salvo em `eda_2_heatmap_features.html`)
+
+### Multicolinearidade Detectada
+
+O heatmap revelou **multicolinearidade** entre features físicas do produto:
+- `product_weight_g` × `volume_cm3` → correlação alta (~0.7+)
+- `product_length_cm` × `product_width_cm` → correlação moderada
+
+Isso orientou a decisão de usar `volume_cm3` (feature agregada) em vez das 3 dimensões separadas no modelo final.
+
+## Limitação e Complemento
+
+### Por que Pearson não é suficiente sozinho?
+
+1. **Correlação não é Causalidade:** Só porque duas coisas sobem juntas, não significa que uma causa a outra.
+2. **Apenas Relações Lineares:** Pearson traça uma reta. Se a relação fizer curva (formato "U"), o Pearson dará ~0, mesmo existindo padrão. Para esses casos usa-se *Spearman*.
+3. **Apenas Numéricas:** Para features categóricas (estado, categoria do produto), o Pearson não se aplica diretamente. O CatBoost resolve isso com **ordered target encoding interno**.
+
+### Complemento: Feature Importance do CatBoost
+
+A importância real das features no modelo final (CatBoost V5) vai além do Pearson:
+- Features com Pearson fraco (ex: `product_category_name`) ganham importância via **interações não-lineares** entre splits das árvores
+- A feature importance do CatBoost reflete o quanto cada feature contribui para a redução de loss, capturando relações que o Pearson não detecta
+- Detalhes completos em `docs/spec/model_spec.md`
