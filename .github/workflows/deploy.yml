@@ -20,7 +20,8 @@ jobs:
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
             cd /home/ubuntu/data-analytics-mdg5
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
             source venv/bin/activate
             pip install -r requirements.txt
             if [ -f /etc/systemd/system/olist-dashboard.service ]; then
