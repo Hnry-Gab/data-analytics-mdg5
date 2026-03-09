@@ -74,7 +74,7 @@ def _apply_filters(df: pd.DataFrame, filters: list[dict] | None) -> tuple[pd.Dat
             df = df[df[col] <= val]
             descriptions.append(f"{col} ≤ {val}")
         elif op == "contains":
-            df = df[df[col].astype(str).str.contains(str(val), case=False, na=False)]
+            df = df[df[col].astype(str).str.contains(str(val), case=False, na=False, regex=False)]
             descriptions.append(f"{col} contains '{val}'")
         elif op == "in":
             if not isinstance(val, list):

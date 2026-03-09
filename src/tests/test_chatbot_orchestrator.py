@@ -168,16 +168,17 @@ class TestOrchestrator:
         importlib.reload(mod)
 
         # Each iteration: LLM requests a tool call, MCP returns error
-        tool_chunks = [
-            {"choices": [{"delta": {"tool_calls": [{"index": 0, "id": "c1", "function": {"name": "bad_tool", "arguments": ""}}]}, "finish_reason": None}]},
-            {"choices": [{"delta": {"tool_calls": [{"index": 0, "function": {"arguments": "{}"}}]}, "finish_reason": None}]},
-            {"choices": [{"delta": {}, "finish_reason": "tool_calls"}]},
-        ]
-
+        # Use different tool names per iteration to avoid repeated-call detection
         call_count = [0]
 
         async def mock_stream(messages, tools=None):
             call_count[0] += 1
+            name = f"bad_tool_{call_count[0]}"
+            tool_chunks = [
+                {"choices": [{"delta": {"tool_calls": [{"index": 0, "id": f"c{call_count[0]}", "function": {"name": name, "arguments": ""}}]}, "finish_reason": None}]},
+                {"choices": [{"delta": {"tool_calls": [{"index": 0, "function": {"arguments": "{}"}}]}, "finish_reason": None}]},
+                {"choices": [{"delta": {}, "finish_reason": "tool_calls"}]},
+            ]
             for c in tool_chunks:
                 yield c
 

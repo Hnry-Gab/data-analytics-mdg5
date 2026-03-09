@@ -93,4 +93,4 @@ class TestServerMetadata:
 
     def test_server_has_instructions(self):
         assert mcp.instructions
-        assert "25" in mcp.instructions or "26" in mcp.instructions
+        assert "foi_atraso" in mcp.instructions

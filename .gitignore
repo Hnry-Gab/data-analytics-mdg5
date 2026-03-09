@@ -88,3 +88,6 @@ models/*.pkl
 models/*.joblib
 data/*.csv
 !data/.gitkeep
+
+.pytest_cache
+com.google*
