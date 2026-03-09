@@ -14,6 +14,43 @@ from backend.chatbot.tool_converter import mcp_tools_to_openai_functions
 
 logger = logging.getLogger(__name__)
 
+_ERROR_MARKERS = (
+    "[MCP error]",
+    "**Error",
+    "**Error:**",
+    "Unsupported query type",
+    "Error:",
+)
+
+
+def _is_tool_error(result: str) -> bool:
+    """Detect if a tool result represents an error.
+
+    Handles both simple error strings and batch results where
+    sub-queries contain inline errors (e.g. batch_query with
+    multiple ``**Error:**`` entries).
+    """
+    if not result:
+        return False
+
+    # Direct prefix match
+    for marker in _ERROR_MARKERS:
+        if result.startswith(marker):
+            return True
+
+    # For batch results: count error vs success sections.
+    # Only check within "--- QUERY" delimited batch output to avoid false positives.
+    if "--- QUERY" in result and "**Error:**" in result:
+        import re
+        total_sections = result.count("--- QUERY")
+        error_sections = len(re.findall(r"--- QUERY \d+.*?\n\*\*Error:\*\*", result))
+        if total_sections > 0 and error_sections > 0:
+            # If majority of queries failed, it's an error
+            if error_sections / total_sections > 0.5:
+                return True
+
+    return False
+
 
 def _make_sse(event: str, data: dict | None = None) -> str:
     """Format a Server-Sent Event line."""
@@ -47,6 +84,8 @@ async def handle_chat_message(message: str, session_id: str) -> AsyncIterator[st
 
     # 3. Agentic loop
     consecutive_errors = 0
+    last_tool_signature: str | None = None
+    repeated_call_count = 0
 
     for iteration in range(MAX_TOOL_ITERATIONS):
         messages = session_manager.get_or_create(session_id)
@@ -117,6 +156,30 @@ async def handle_chat_message(message: str, session_id: str) -> AsyncIterator[st
                 "tool_calls": formatted_tool_calls,
             })
 
+            # Detect repeated identical tool calls (LLM stuck in a loop)
+            call_signature = json.dumps(
+                [(tc["name"], tc["arguments_str"]) for tc in tool_calls_accum.values()],
+                sort_keys=True,
+            )
+            if call_signature == last_tool_signature:
+                repeated_call_count += 1
+            else:
+                repeated_call_count = 0
+                last_tool_signature = call_signature
+
+            if repeated_call_count >= MAX_CONSECUTIVE_TOOL_ERRORS:
+                error_msg = (
+                    f"O LLM repetiu a mesma chamada de ferramenta {repeated_call_count + 1} vezes. "
+                    "Encerrando loop para evitar desperdício."
+                )
+                logger.error("Aborting tool loop: repeated identical tool call %d times", repeated_call_count + 1)
+                yield _make_sse("error", {"message": error_msg})
+                session_manager.append(session_id, {
+                    "role": "assistant",
+                    "content": f"⚠️ {error_msg}",
+                })
+                break
+
             for tc in tool_calls_accum.values():
                 try:
                     args = json.loads(tc["arguments_str"]) if tc["arguments_str"] else {}
@@ -129,10 +192,19 @@ async def handle_chat_message(message: str, session_id: str) -> AsyncIterator[st
                     "arguments": args,
                 })
 
-                result = await mcp_client.call_tool(tc["name"], args)
+                # Skip MCP call if args are empty for tools that require them
+                if not args:
+                    result = (
+                        f"[MCP error] Tool '{tc['name']}' called with empty arguments. "
+                        "Please provide the required parameters."
+                    )
+                    logger.warning("Skipping MCP call for '%s': empty arguments", tc["name"])
+                else:
+                    result = await mcp_client.call_tool(tc["name"], args)
 
-                # Check for tool error
-                is_error = result.startswith("[MCP error]") or result.startswith("**Error:**")
+                # Check for tool error — covers both full-error results
+                # and batch results where most/all sub-queries errored.
+                is_error = _is_tool_error(result)
 
                 if is_error:
                     consecutive_errors += 1
@@ -141,6 +213,24 @@ async def handle_chat_message(message: str, session_id: str) -> AsyncIterator[st
                         tc["name"], consecutive_errors,
                         MAX_CONSECUTIVE_TOOL_ERRORS, result[:200],
                     )
+                elif "--- QUERY" in result and "**Error:**" in result:
+                    # Partial batch failure: some sub-queries failed but majority succeeded.
+                    # Extract which queries failed and tell the LLM specifically.
+                    consecutive_errors = 0
+                    import re
+                    failed = re.findall(
+                        r"--- QUERY (\d+).*?\n\*\*Error:\*\*\s*(.+?)(?:\n|$)",
+                        result,
+                    )
+                    if failed:
+                        details = "; ".join(
+                            f"Query {num}: {msg.strip()}" for num, msg in failed
+                        )
+                        result += (
+                            f"\n\n⚠️ **System note:** {len(failed)} sub-query(ies) failed: {details}. "
+                            "The successful queries returned valid data — do NOT retry them. "
+                            "Only fix or drop the failed queries."
+                        )
                 else:
                     consecutive_errors = 0
 
@@ -182,6 +272,20 @@ async def handle_chat_message(message: str, session_id: str) -> AsyncIterator[st
                 "role": "assistant",
                 "content": full_content,
             })
+            break
+
+        # LLM returned empty after processing tool results — nudge it to respond
+        if iteration > 0 and not full_content:
+            logger.warning("LLM returned empty response after tool calls (iteration %d), nudging", iteration)
+            session_manager.append(session_id, {
+                "role": "user",
+                "content": (
+                    "You received tool results above but did not produce a response. "
+                    "Please summarize the results and answer the user's question."
+                ),
+            })
+            continue
+
         break
 
     yield _make_sse("done")

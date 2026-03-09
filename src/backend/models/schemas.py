@@ -2,8 +2,7 @@
 Schemas Pydantic para validação de dados de entrada e saída (V5 CatBoost)
 """
 from pydantic import BaseModel, Field, field_validator
-from typing import Optional, Dict, Any
-from datetime import datetime
+from typing import Dict, Any
 
 class PedidoInput(BaseModel):
     """

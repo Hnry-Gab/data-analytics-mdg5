@@ -5,14 +5,13 @@ and generates live charts via Plotly + Kaleido.
 """
 
 import base64
-from pathlib import Path
 
 import plotly.express as px
 import plotly.graph_objects as go
 from fastmcp import FastMCP
 
 from olist_mcp.cache import DataStore
-from olist_mcp.config import ROOT
+from olist_mcp.config import IMAGES_DIR, HTML_DIR
 
 
 def _fig_to_base64(fig: go.Figure) -> str | None:
@@ -22,10 +21,6 @@ def _fig_to_base64(fig: go.Figure) -> str | None:
         return base64.b64encode(png_bytes).decode("utf-8")
     except Exception:
         return None
-
-
-_IMAGES_DIR = ROOT / "notebooks" / "final_analysis" / "images"
-_HTML_DIR = ROOT / "notebooks" / "final_analysis"
 
 # Static chart registry: keyword → (filename, description)
 _STATIC_CHARTS: dict[str, tuple[str, str]] = {
@@ -92,7 +87,7 @@ def register(mcp: FastMCP) -> None:
         lines.append("### Static Charts (PNG)\n")
         lines.append(f"*Directory: `notebooks/final_analysis/images/`*\n")
         for i, (key, (filename, desc)) in enumerate(_STATIC_CHARTS.items(), 1):
-            exists = (_IMAGES_DIR / filename).exists()
+            exists = (IMAGES_DIR / filename).exists()
             status = "available" if exists else "missing"
             lines.append(f"{i}. **`{key}`** — {desc}")
             lines.append(f"   - File: `{filename}` [{status}]")
@@ -102,7 +97,7 @@ def register(mcp: FastMCP) -> None:
         lines.append("\n### Interactive Charts (HTML Plotly)\n")
         lines.append(f"*Directory: `notebooks/final_analysis/`*\n")
         for i, (key, (filename, desc)) in enumerate(_HTML_CHARTS.items(), 1):
-            exists = (_HTML_DIR / filename).exists()
+            exists = (HTML_DIR / filename).exists()
             status = "available" if exists else "not generated"
             lines.append(f"{i}. **`{key}`** — {desc}")
             lines.append(f"   - File: `{filename}` [{status}]")
@@ -149,7 +144,7 @@ def register(mcp: FastMCP) -> None:
                 )
 
         filename, description = match
-        filepath = _IMAGES_DIR / filename
+        filepath = IMAGES_DIR / filename
 
         if not filepath.exists():
             return (
@@ -185,7 +180,7 @@ def register(mcp: FastMCP) -> None:
             )
 
         filename, description = match
-        filepath = _HTML_DIR / filename
+        filepath = HTML_DIR / filename
 
         if not filepath.exists():
             return (

@@ -144,7 +144,7 @@ def register(mcp: FastMCP) -> None:
         model, config = DataStore.catboost()
         if model is None:
             return (
-                "**Model not available.** CatBoost V5 model file not found.\n\n"
+                "**Error:** CatBoost V5 model file not found.\n\n"
                 "Use `get_catboost_model_info` or `dynamic_aggregate` with "
                 "`column='foi_atraso'` for delay statistics instead."
             )
@@ -196,7 +196,7 @@ def register(mcp: FastMCP) -> None:
         """Get complete CatBoost V5 model information: metrics, hyperparameters, features, and SMOTE config."""
         _, config = DataStore.catboost()
         if config is None:
-            return "**Model not available.** CatBoost config file not found."
+            return "**Error:** CatBoost config file not found."
 
         m = config["metrics"]
         hp = config["best_params"]
@@ -308,7 +308,7 @@ def register(mcp: FastMCP) -> None:
         """
         model, config = DataStore.catboost()
         if model is None:
-            return "**Model not available.** CatBoost V5 model file not found."
+            return "**Error:** CatBoost V5 model file not found."
 
         if not vary_values:
             return "**Error:** vary_values must be a non-empty list."

@@ -1,0 +1,7 @@
+{
+    "olist-analytics": {
+      "command": "python",
+      "args": ["-m", "olist_mcp.server"],
+      "cwd": "/home/henry/Documents/programming/github/alphaEdTech/projetos/data-analytics-mdg5/src"
+    }
+}

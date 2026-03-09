@@ -146,15 +146,15 @@ def _run_aggregate(
     n_total = len(df)
 
     if column not in df.columns:
-        return f"**Error (aggregate):** Column '{column}' not found."
+        return f"**Error:** Column '{column}' not found."
 
     try:
         df_f, descs = _apply_filters(df, filters)
     except ValueError as e:
-        return f"**Error (aggregate):** {e}"
+        return f"**Error:** {e}"
 
     if agg not in _VALID_AGGS:
-        return f"**Error (aggregate):** Invalid aggregation '{agg}'."
+        return f"**Error:** Invalid aggregation '{agg}'."
 
     n_filtered = len(df_f)
     if n_filtered == 0:
@@ -194,12 +194,12 @@ def _run_group_by(
     n_total = len(df)
 
     if group_by not in df.columns:
-        return f"**Error (group_by):** Column '{group_by}' not found."
+        return f"**Error:** Column '{group_by}' not found."
 
     try:
         df_f, descs = _apply_filters(df, filters)
     except ValueError as e:
-        return f"**Error (group_by):** {e}"
+        return f"**Error:** {e}"
 
     n_filtered = len(df_f)
     if n_filtered == 0:
@@ -211,9 +211,9 @@ def _run_group_by(
         try:
             agg_name, col_name = _parse_metric(m)
         except ValueError as e:
-            return f"**Error (group_by):** {e}"
+            return f"**Error:** {e}"
         if col_name not in df.columns:
-            return f"**Error (group_by):** Column '{col_name}' not found in metric '{m}'."
+            return f"**Error:** Column '{col_name}' not found in metric '{m}'."
         parsed_metrics.append((agg_name, col_name))
 
     # Build aggregation dict
@@ -267,12 +267,12 @@ def _run_top_n(
     n_total = len(df)
 
     if sort_by not in df.columns:
-        return f"**Error (top_n):** Column '{sort_by}' not found."
+        return f"**Error:** Column '{sort_by}' not found."
 
     try:
         df_f, descs = _apply_filters(df, filters)
     except ValueError as e:
-        return f"**Error (top_n):** {e}"
+        return f"**Error:** {e}"
 
     n_filtered = len(df_f)
     if n_filtered == 0:
@@ -405,9 +405,9 @@ def register(mcp: FastMCP) -> None:
                         agg=q.get("agg", "sum"),
                     )
                 else:
-                    res = f"**Error (query {i}):** Unsupported query type '{q_type}'."
+                    res = f"**Error:** Unsupported query type '{q_type}' in query {i}."
             except Exception as e:
-                res = f"**Error (query {i}):** {e}"
+                res = f"**Error:** Query {i} failed: {e}"
 
             results.append(f"--- QUERY {i} ({q_type}) ---\n{res}")
 

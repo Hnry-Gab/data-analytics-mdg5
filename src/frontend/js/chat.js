@@ -126,6 +126,9 @@
         scrollToBottom();
     }
 
+    /** Track when tool indicator was shown (for minimum display time) */
+    let _toolShowTime = 0;
+
     function showToolIndicator(botDiv, toolName) {
         removeTypingIndicator(botDiv);
         let ind = botDiv.querySelector(".chat-tool-indicator");
@@ -135,12 +138,24 @@
             botDiv.appendChild(ind);
         }
         ind.textContent = `🔍 Consultando dados (${toolName})...`;
+        _toolShowTime = Date.now();
         scrollToBottom();
     }
 
     function hideToolIndicator(botDiv) {
         const ind = botDiv.querySelector(".chat-tool-indicator");
         if (ind) ind.remove();
+        // Restore typing dots while waiting for next content
+        if (!botDiv.classList.contains("chat-msg--complete") && !botDiv.querySelector(".chat-typing")) {
+            const p = botDiv.querySelector(".chat-bot-text");
+            if (p) {
+                const typing = document.createElement("span");
+                typing.className = "chat-typing";
+                typing.innerHTML = "<span>.</span><span>.</span><span>.</span>";
+                p.appendChild(typing);
+                scrollToBottom();
+            }
+        }
     }
 
     function appendError(botDiv, message) {
@@ -173,9 +188,16 @@
             case "tool_call":
                 showToolIndicator(botDiv, data.name);
                 break;
-            case "tool_result":
-                hideToolIndicator(botDiv);
+            case "tool_result": {
+                const elapsed = Date.now() - _toolShowTime;
+                const MIN_SHOW = 1500; // ms — minimum time tool indicator stays visible
+                if (elapsed < MIN_SHOW) {
+                    setTimeout(() => hideToolIndicator(botDiv), MIN_SHOW - elapsed);
+                } else {
+                    hideToolIndicator(botDiv);
+                }
                 break;
+            }
             case "error":
                 appendError(botDiv, data.message);
                 break;
@@ -223,7 +245,12 @@
         _rawText = "";
 
         const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 120_000);
+        const IDLE_TIMEOUT = 900_000; // 15 min — matches backend write timeout
+        let timeout = setTimeout(() => controller.abort(), IDLE_TIMEOUT);
+        const resetTimeout = () => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => controller.abort(), IDLE_TIMEOUT);
+        };
 
         try {
             const response = await fetch("/api/chat", {
@@ -248,6 +275,7 @@
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
+                resetTimeout();
 
                 buffer += decoder.decode(value, { stream: true });
                 const lines = buffer.split("\n");

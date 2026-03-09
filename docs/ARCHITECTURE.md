@@ -9,19 +9,19 @@
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  FRONTEND (HTML/CSS/JS)                                     │
-│  └─ chat.js → SSE stream ────────────────────┐              │
-└─────────────────────────────────────────────────────────────┘
+│  └─ chat.js → SSE stream ─────────────────────┐             │
+└───────────────────────────────────────────────┤─────────────┘
                                                 │
                                           POST /chat
                                           SSE stream
                                                 │
-┌─────────────────────────────────────────────────────────────┐
+┌───────────────────────────────────────────────┤─────────────┐
 │  BACKEND (FastAPI + Uvicorn)                                │
 │                                                             │
-│  ┌─────────────┐  ┌──────────────────┐  ┌───────────────┐  │
-│  │ routes.py   │→ │ orchestrator.py  │→ │ mcp_client.py │──┤──→ stdio
-│  │ (SSE)       │  │ (LLM ↔ Tools)   │  │ (MCP SDK)     │  │
-│  └─────────────┘  └──────────────────┘  └───────────────┘  │
+│  ┌─────────────┐  ┌──────────────────┐  ┌───────────────┐   │
+│  │ routes.py   │→ │ orchestrator.py  │→ │ mcp_client.py │───┤──→ stdio
+│  │ (SSE)       │  │ (LLM ↔ Tools)    │  │ (MCP SDK)     │   │
+│  └─────────────┘  └──────────────────┘  └───────────────┘   │
 │         │                  │                                │
 │         │         ┌────────┴────────┐                       │
 │         │         │ openrouter_     │                       │
@@ -33,7 +33,7 @@
 │         │         (Gemini 2.5 Flash Lite)                   │
 │  ┌──────┴──────┐                                            │
 │  │ session_    │                                            │
-│  │ manager.py  │ (in-memory, max 50 msgs, 1h cleanup)      │
+│  │ manager.py  │ (in-memory, max 50 msgs, 1h cleanup)       │
 │  └─────────────┘                                            │
 └─────────────────────────────────────────────────────────────┘
                           │ stdio
@@ -44,29 +44,29 @@
 │  ┌─────────────────────────────────────────────────────┐    │
 │  │ DataStore (Singleton, thread-safe, lazy-load)       │    │
 │  │  ├─ df()           → DataFrame 109K×59              │    │
-│  │  ├─ model()        → CatBoost V5 (.cbm)            │    │
-│  │  └─ model_config() → JSON (metrics, features)      │    │
+│  │  ├─ model()        → CatBoost V5 (.cbm)             │    │
+│  │  └─ model_config() → JSON (metrics, features)       │    │
 │  └─────────────────────────────────────────────────────┘    │
 │                                                             │
-│  ┌─────────┐ ┌─────────┐ ┌──────────┐ ┌──────────────┐    │
-│  │dataset_ │ │dynamic_ │ │catboost_ │ │business_     │    │
-│  │stats(5) │ │query(5) │ │ml(4)     │ │insights(2)   │    │
-│  └─────────┘ └─────────┘ └──────────┘ └──────────────┘    │
-│  ┌──────────────┐ ┌──────────────┐                         │
-│  │visualization │ │calculator(3) │                         │
-│  │(7)           │ │              │                         │
-│  └──────────────┘ └──────────────┘                         │
+│  ┌─────────┐ ┌─────────┐ ┌──────────┐ ┌──────────────┐      │
+│  │dataset_ │ │dynamic_ │ │catboost_ │ │business_     │      │
+│  │stats(5) │ │query(5) │ │ml(4)     │ │insights(2)   │      │
+│  └─────────┘ └─────────┘ └──────────┘ └──────────────┘      │
+│  ┌──────────────┐ ┌──────────────┐                          │
+│  │visualization │ │calculator(3) │                          │
+│  │(7)           │ │              │                          │
+│  └──────────────┘ └──────────────┘                          │
 │                                                             │
-│  Total: 22 tools across 6 modules                          │
+│  Total: 22 tools across 6 modules                           │
 └─────────────────────────────────────────────────────────────┘
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  DADOS                                                      │
-│  ├─ src/notebooks/dataset_unificado_v1.csv  (109K×59)      │
-│  ├─ src/models/v5/catboost_atraso_v5.cbm    (CatBoost)     │
-│  ├─ src/models/v5/model_config.json         (métricas)     │
-│  └─ src/notebooks/*.html                    (gráficos EDA) │
+│  ├─ src/notebooks/dataset_unificado_v1.csv  (109K×59)       │
+│  ├─ src/models/v5/catboost_atraso_v5.cbm    (CatBoost)      │
+│  ├─ src/models/v5/model_config.json         (métricas)      │
+│  └─ src/notebooks/*.html                    (gráficos EDA)  │
 └─────────────────────────────────────────────────────────────┘
 ```
 

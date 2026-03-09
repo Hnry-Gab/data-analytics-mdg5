@@ -6,7 +6,6 @@ Exposes statistics from the unified Olist dataset (~96K rows × 53 columns).
 from fastmcp import FastMCP
 
 from olist_mcp.cache import DataStore
-from olist_mcp.utils.formatters import format_json_safe, format_markdown_table
 from olist_mcp.utils.haversine import haversine_distance
 
 # Schema column groupings for get_dataset_schema

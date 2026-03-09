@@ -14,8 +14,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "frontend"
 
 # Configurações do modelo
-MODEL_PATH = os.getenv("MODEL_PATH", str(BASE_DIR / "models" / "v5" / "catboost_atraso_v5.cbm"))
-MODEL_CONFIG_PATH = os.getenv("MODEL_CONFIG_PATH", str(BASE_DIR / "models" / "v5" / "model_config.json"))
+MODEL_PATH = os.getenv("MODEL_PATH", str(BASE_DIR / "models" / "catboost_atraso_v5.cbm"))
+MODEL_CONFIG_PATH = os.getenv("MODEL_CONFIG_PATH", str(BASE_DIR / "models" / "model_config.json"))
 CSV_PATH = os.getenv("CSV_PATH", str(BASE_DIR / "dataset"))
 
 # Configurações da aplicação

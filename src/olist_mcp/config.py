@@ -2,16 +2,16 @@
 
 from pathlib import Path
 
-ROOT = Path(__file__).parent.parent
-
-DATASET_V1 = ROOT / "notebooks" / "individual" / "Lucas" / "dataset_unificado_v1.csv"
-CATBOOST_MODEL = ROOT / "models" / "v5" / "catboost_atraso_v5.cbm"
-CATBOOST_CONFIG = ROOT / "models" / "v5" / "model_config.json"
-IMAGES_DIR = ROOT / "notebooks" / "final_analysis" / "images"
-HTML_DIR = ROOT / "notebooks" / "final_analysis"
+ROOT = Path(__file__).parent.parent.parent
+SRC_ROOT = ROOT / "src"
 DOCS_DIR = ROOT / "docs"
-SPEC_DIR = ROOT / "spec"
-RAW_DATA_DIR = ROOT / "dataset"
+
+DATASET_V1 = SRC_ROOT / "notebooks" / "dataset_unificado_v1.csv"
+CATBOOST_MODEL = SRC_ROOT / "models" / "catboost_atraso_v5.cbm"
+CATBOOST_CONFIG = SRC_ROOT / "models" / "model_config.json"
+IMAGES_DIR = SRC_ROOT / "notebooks" / "images"
+HTML_DIR = SRC_ROOT / "notebooks"
+RAW_DATA_DIR = SRC_ROOT / "dataset"
 
 ZIP_DTYPE = {
     "customer_zip_code_prefix": str,
