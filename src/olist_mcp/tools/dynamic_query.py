@@ -375,7 +375,13 @@ def register(mcp: FastMCP) -> None:
         """
         results = []
         for i, q in enumerate(queries, 1):
-            q_type = q.get("type")
+            q_type = q.get("type", "")
+            # Accept tool names as aliases for query types
+            q_type = {
+                "dynamic_aggregate": "aggregate",
+                "group_by_metrics": "group_by",
+                "top_n_query": "top_n",
+            }.get(q_type, q_type)
             try:
                 if q_type == "aggregate":
                     res = _run_aggregate(

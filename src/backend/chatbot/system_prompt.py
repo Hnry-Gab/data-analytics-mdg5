@@ -62,18 +62,40 @@ When you receive a user request, follow this process:
   use a single `group_by_metrics` or `dynamic_aggregate` call instead of individual \
   queries per item. If that is not possible, limit to top 10 and offer to continue.
 
+## batch_query Reference
+Inside `batch_query`, each sub-query must have a `"type"` field. Valid types:
+- `"aggregate"` — params: `column` (required), `agg`, `filters`, `limit`
+- `"group_by"` — params: `group_by` (required), `metrics` (required), `filters`, `sort_by`, `sort_order`, `limit`, `min_count`
+- `"top_n"` — params: `sort_by` (required), `n`, `sort_order`, `filters`, `columns`
+
+**Do NOT use tool names as types** (e.g., `"dynamic_aggregate"` or `"group_by_metrics"` will fail).
+
+Example:
+```json
+{"queries": [
+  {"type": "aggregate", "column": "foi_atraso", "agg": "mean", "filters": [{"column": "customer_state", "op": "eq", "value": "SP"}]},
+  {"type": "group_by", "group_by": "seller_state", "metrics": ["mean:foi_atraso", "count:order_id"], "limit": 5}
+]}
+```
+
+## Filter Operators
+Valid `"op"` values in filters: `eq`, `neq`, `gt`, `gte`, `lt`, `lte`, `contains`, `in`, `notnull`.
+There is NO `"between"` operator. To filter a range, use two filters: `{"op": "gte", "value": 0.2}` + `{"op": "lte", "value": 0.5}`.
+
 ## Key Column Names (use these exact names in tool calls)
 - **Target:** `foi_atraso` (1 = delayed, 0 = on time)
-- **Geography:** `customer_state`, `seller_state`, `customer_city`, `seller_city`, `macro_regiao_cliente`, `macro_regiao_seller`
-- **Route:** `rota_interestadual` (1 = interstate, 0 = intrastate), `rota_seller_customer` (e.g. "SP-RJ")
-- **Time:** `order_purchase_timestamp`, `order_delivered_customer_date`, `order_estimated_delivery_date`, `dia_semana_compra`, `mes_compra`, `prazo_estimado_dias`, `prazo_real_dias`, `margem_atraso_dias`
+- **Geography:** `customer_state`, `seller_state`, `customer_city`, `seller_city`, `customer_regiao`, `seller_regiao`
+- **Route:** `rota_interestadual` (1 = interstate, 0 = intrastate)
+- **Time:** `order_purchase_timestamp`, `order_delivered_customer_date`, `order_estimated_delivery_date`, `dia_semana_compra`, `mes_compra`, `hora_compra`, `ano_compra`, `ano_mes`, `trimestre`, `ano_trimestre`
 - **Seller performance:** `velocidade_lojista_dias`, `historico_atraso_seller`
 - **Product:** `product_category_name`, `product_weight_g`, `volume_cm3`, `product_length_cm`, `product_height_cm`, `product_width_cm`
-- **Financials:** `price`, `freight_value`, `frete_ratio`, `ticket_medio_alto`
+- **Financials:** `price`, `freight_value`, `frete_ratio`, `ticket_medio_alto`, `valor_total_pedido`
 - **Distance:** `distancia_haversine_km`
-- **Flags:** `compra_fds`, `eh_alta_temporada`
+- **Delay metrics:** `dias_diferenca`, `dias_atraso`, `velocidade_transportadora_dias`
+- **Flags:** `compra_fds`, `destino_tipo` (capital/interior)
+- **Other:** `total_itens_pedido`, `tipo_pagamento_principal`
 
-**IMPORTANT:** If you are unsure about a column name, call `get_dataset_overview` or `list_columns` first. Never guess column names.
+**IMPORTANT:** If you are unsure about a column name, call `get_dataset_overview` or `get_dataset_schema` first. Never guess column names.
 
 ## Response Style
 - Be concise and data-driven. Use markdown formatting (tables, bold, bullet points).

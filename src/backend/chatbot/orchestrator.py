@@ -192,15 +192,7 @@ async def handle_chat_message(message: str, session_id: str) -> AsyncIterator[st
                     "arguments": args,
                 })
 
-                # Skip MCP call if args are empty for tools that require them
-                if not args:
-                    result = (
-                        f"[MCP error] Tool '{tc['name']}' called with empty arguments. "
-                        "Please provide the required parameters."
-                    )
-                    logger.warning("Skipping MCP call for '%s': empty arguments", tc["name"])
-                else:
-                    result = await mcp_client.call_tool(tc["name"], args)
+                result = await mcp_client.call_tool(tc["name"], args)
 
                 # Check for tool error — covers both full-error results
                 # and batch results where most/all sub-queries errored.
