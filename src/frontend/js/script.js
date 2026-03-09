@@ -672,7 +672,7 @@ async function initDashboard(state = "", year = "") {
             // O mapa deve ser sempre renderizado (com os dados filtrados ou globais)
             renderMap(data.map_data);
             renderTimeline(data.timeline_data);
-            renderScatter(); 
+            renderScatter(data.scatter_data);
         }
     } catch (e) {
         console.error("Falha ao carregar dashboard", e);
@@ -822,21 +822,14 @@ function renderTimeline(timelineData = {x: [], y: []}) {
 
 /* ── Price vs Freight Scatter ────────────────────────────────────────── */
 
-function renderScatter() {
-    const n = 900;
-    const okX = [], okY = [], dX = [], dY = [];
-    for (let i = 0; i < n; i++) {
-        const p = Math.random() * 500 + 10;
-        const f = Math.random() * 80 + 5;
-        if (Math.random() > 0.93) { dX.push(p); dY.push(f); }
-        else { okX.push(p); okY.push(f); }
-    }
+function renderScatter(data) {
+    if (!data) return;
 
     Plotly.newPlot("dash-scatter", [
-        { x: okX, y: okY, mode: "markers", name: t("scatter.onTime"),
+        { x: data.on_time_x, y: data.on_time_y, mode: "markers", name: t("scatter.onTime"),
           marker: { size: 3, color: FAINT, opacity: 0.5 },
           hovertemplate: "R$%{x:.0f} | R$%{y:.0f}<extra>" + t("scatter.onTime") + "</extra>" },
-        { x: dX, y: dY, mode: "markers", name: t("scatter.delayed"),
+        { x: data.delayed_x, y: data.delayed_y, mode: "markers", name: t("scatter.delayed"),
           marker: { size: 5, color: ALERT, opacity: 0.7 },
           hovertemplate: "R$%{x:.0f} | R$%{y:.0f}<extra>" + t("scatter.delayed") + "</extra>" },
     ], {

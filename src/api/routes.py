@@ -2,17 +2,17 @@
 Endpoints REST da API Olist Logistics
 """
 from fastapi import APIRouter, HTTPException, status
-from backend.models.schemas import (
+from src.models.schemas import (
     PedidoInput,
     PredictionOutput,
     HealthResponse,
     FeaturesResponse
 )
-from backend.core.ml_model import ml_model
-from backend.core.data_loader import data_loader
-from backend.core.feature_engineering import process_features, get_features_dict
-from backend.utils.logger import get_logger
-from backend.utils.exceptions import (
+from src.core.ml_model import ml_model
+from src.core.data_loader import data_loader
+from src.core.feature_engineering import process_features, get_features_dict
+from src.utils.logger import get_logger
+from src.utils.exceptions import (
     ModelNotLoadedException,
     InvalidFeatureException,
     PredictionException
@@ -164,21 +164,6 @@ async def get_dashboard_stats(state: str = None, year: int = None):
         "y": [round(v, 1) for v in timeline_df.values]
     }
 
-    # 6. Scatter (Price vs Freight, real data)
-    scatter_cols = ['price', 'freight_value', target_col]
-    df_scatter = df.dropna(subset=scatter_cols)
-    df_scatter = df_scatter[(df_scatter['price'] > 0) & (df_scatter['price'] < 3000) & (df_scatter['freight_value'] > 0) & (df_scatter['freight_value'] < 300)]
-    if len(df_scatter) > 1500:
-        df_scatter = df_scatter.sample(1500, random_state=42)
-    on_time = df_scatter[df_scatter[target_col] == 0]
-    delayed = df_scatter[df_scatter[target_col] == 1]
-    scatter_data = {
-        "on_time_x": on_time['price'].round(2).tolist(),
-        "on_time_y": on_time['freight_value'].round(2).tolist(),
-        "delayed_x": delayed['price'].round(2).tolist(),
-        "delayed_y": delayed['freight_value'].round(2).tolist(),
-    }
-
     return {
         "total_orders": total_orders,
         "delayed_orders": delayed_orders,
@@ -188,8 +173,7 @@ async def get_dashboard_stats(state: str = None, year: int = None):
         "delta_days": round(avg_delta, 1),
         "map_data": map_data,
         "ranking_data": ranking_data,
-        "timeline_data": timeline_data,
-        "scatter_data": scatter_data,
+        "timeline_data": timeline_data
     }
 
 @router.get(
@@ -314,71 +298,6 @@ async def get_insights_data():
 
 def int_to_list(series):
     return [int(x) for x in series.tolist()]
-
-
-@router.get(
-    "/insights/temporal",
-    status_code=status.HTTP_200_OK,
-    summary="Análise temporal de atrasos (conforme notebook dia1_alpha_pipeline)"
-)
-async def get_temporal_insights():
-    """Retorna análises temporais: taxa de atraso por mês, dia da semana e série temporal."""
-    if not data_loader.is_loaded() or data_loader._data is None:
-        return {"error": "Dataset não carregado."}
-
-    df = data_loader._data.copy()
-
-    # Taxa de atraso por mês do ano
-    if 'mes_compra' in df.columns:
-        atraso_mes = df.groupby('mes_compra').agg(
-            total=('order_id', 'count'),
-            taxa_atraso=('delivery_delayed', 'mean')
-        ).reset_index()
-        mes_data = {
-            "meses": atraso_mes['mes_compra'].tolist(),
-            "taxas": [round(x * 100, 1) for x in atraso_mes['taxa_atraso'].tolist()],
-            "totais": atraso_mes['total'].tolist()
-        }
-    else:
-        mes_data = {"meses": [], "taxas": [], "totais": []}
-
-    # Taxa de atraso por dia da semana
-    if 'dia_semana_compra' in df.columns:
-        atraso_dia = df.groupby('dia_semana_compra').agg(
-            total=('order_id', 'count'),
-            taxa_atraso=('delivery_delayed', 'mean')
-        ).reset_index()
-        dia_data = {
-            "dias": atraso_dia['dia_semana_compra'].tolist(),
-            "taxas": [round(x * 100, 1) for x in atraso_dia['taxa_atraso'].tolist()],
-            "totais": atraso_dia['total'].tolist()
-        }
-    else:
-        dia_data = {"dias": [], "taxas": [], "totais": []}
-
-    # Série temporal mensal (evolução ao longo do tempo)
-    if 'order_purchase_timestamp' in df.columns:
-        df['ano_mes'] = df['order_purchase_timestamp'].dt.to_period('M').astype(str)
-        serie_mensal = df.groupby('ano_mes').agg(
-            total=('order_id', 'count'),
-            taxa_atraso=('delivery_delayed', 'mean')
-        ).reset_index()
-        # Filtrar meses com poucos pedidos
-        serie_mensal = serie_mensal[serie_mensal['total'] >= 100]
-
-        serie_data = {
-            "meses": serie_mensal['ano_mes'].tolist(),
-            "taxas": [round(x * 100, 1) for x in serie_mensal['taxa_atraso'].tolist()],
-            "volumes": serie_mensal['total'].tolist()
-        }
-    else:
-        serie_data = {"meses": [], "taxas": [], "volumes": []}
-
-    return {
-        "mes": mes_data,
-        "dia_semana": dia_data,
-        "serie_temporal": serie_data
-    }
 
 
 @router.get(
